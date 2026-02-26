@@ -48,11 +48,11 @@ interface CalendarEvent {
 
 const hosts: { id: string; name: string; connected: boolean }[] = [
   { id: "operaciones", name: "Operaciones", connected: true },
-  { id: "wisdom", name: "Wisdom", connected: false },
-  { id: "biofleming", name: "Biofleming", connected: false },
-  { id: "inbest", name: "Inbest", connected: false },
-  { id: "andres", name: "Andres", connected: false },
-  { id: "pablo", name: "Pablo", connected: false },
+  { id: "wisdom", name: "Wisdom", connected: true },
+  { id: "biofleming", name: "Biofleming", connected: true },
+  { id: "inbest", name: "Inbest", connected: true },
+  { id: "andres", name: "Andres", connected: true },
+  { id: "pablo", name: "Pablo", connected: true },
 ];
 
 const mockHostData: Record<string, { meetingsToday: Meeting[]; upcomingMeetings: Meeting[] }> = {
