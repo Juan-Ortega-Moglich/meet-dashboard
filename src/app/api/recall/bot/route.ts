@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBot } from "@/lib/recall";
+import { createBot, getBot } from "@/lib/recall";
 import { supabase } from "@/lib/supabase";
 
 // POST /api/recall/bot — Create a bot and send it to a meeting
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/recall/bot — List all bots for a host
+// GET /api/recall/bot — List all bots for a host, refreshing active statuses from Recall
 export async function GET(req: NextRequest) {
   const host = req.nextUrl.searchParams.get("host");
 
@@ -61,5 +61,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ bots: data });
+  // For active bots, refresh status directly from Recall.ai
+  const activeStatuses = ["joining_call", "in_waiting_room", "in_call_not_recording", "in_call_recording"];
+  const bots = await Promise.all(
+    (data || []).map(async (bot) => {
+      if (bot.recall_bot_id && activeStatuses.includes(bot.status)) {
+        try {
+          const recallBot = await getBot(bot.recall_bot_id) as {
+            status_changes: Array<{ code: string }>;
+          };
+          const latest = recallBot.status_changes?.[recallBot.status_changes.length - 1];
+          if (latest && latest.code !== bot.status) {
+            // Update in Supabase for future queries
+            await supabase
+              .from("recall_bots")
+              .update({ status: latest.code })
+              .eq("recall_bot_id", bot.recall_bot_id);
+            return { ...bot, status: latest.code };
+          }
+        } catch {
+          // If Recall API fails, return existing status
+        }
+      }
+      return bot;
+    })
+  );
+
+  return NextResponse.json({ bots });
 }
