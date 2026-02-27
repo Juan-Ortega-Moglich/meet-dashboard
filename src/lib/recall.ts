@@ -65,3 +65,31 @@ export async function listBots() {
     path: "/bot/",
   });
 }
+
+export interface TranscriptEntry {
+  words: Array<{ text: string; start_timestamp: number }>;
+  speaker: string;
+  speaker_id?: number;
+}
+
+export async function getBotTranscript(
+  botId: string
+): Promise<Array<{ timestamp: string; speaker: string; text: string }>> {
+  const data = await recallFetch<TranscriptEntry[]>({
+    method: "GET",
+    path: `/bot/${botId}/transcript/`,
+  });
+
+  if (!Array.isArray(data)) return [];
+
+  return data.map((entry) => {
+    const startSec = entry.words?.[0]?.start_timestamp || 0;
+    const minutes = Math.floor(startSec / 60);
+    const seconds = Math.floor(startSec % 60);
+    return {
+      timestamp: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`,
+      speaker: entry.speaker || `Speaker ${entry.speaker_id || 0}`,
+      text: entry.words?.map((w) => w.text).join(" ") || "",
+    };
+  });
+}

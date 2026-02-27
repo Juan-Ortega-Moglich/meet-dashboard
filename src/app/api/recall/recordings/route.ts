@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getBot } from "@/lib/recall";
+import { getBot, getBotTranscript } from "@/lib/recall";
 
 // GET /api/recall/recordings — List recordings, optionally filtered by host
 export async function GET(req: NextRequest) {
@@ -22,11 +22,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // For each recording, refresh video URL if needed (presigned URLs expire after 5h)
   const recordings = await Promise.all(
     (data || []).map(async (rec) => {
-      // If video URL exists, try to refresh it from Recall
-      if (rec.recall_bot_id && rec.video_url) {
+      let videoUrl = rec.video_url;
+      let transcript = rec.transcript;
+
+      if (rec.recall_bot_id) {
         try {
           const bot = await getBot(rec.recall_bot_id) as {
             recordings: Array<{
@@ -35,15 +36,31 @@ export async function GET(req: NextRequest) {
               };
             }>;
           };
+
+          // Refresh video URL (presigned URLs expire after 5h)
           const freshUrl = bot.recordings?.[0]?.media_shortcuts?.video_mixed?.data?.download_url;
           if (freshUrl) {
-            return { ...rec, video_url: freshUrl };
+            videoUrl = freshUrl;
+          }
+
+          // If no transcript saved, fetch directly from Recall
+          if (!transcript || (Array.isArray(transcript) && transcript.length === 0)) {
+            const fetched = await getBotTranscript(rec.recall_bot_id);
+            if (fetched.length > 0) {
+              transcript = fetched;
+              // Save to Supabase for future requests
+              await supabase
+                .from("recordings")
+                .update({ transcript: fetched })
+                .eq("id", rec.id);
+            }
           }
         } catch {
-          // If Recall API fails, return the existing URL
+          // If Recall API fails, return existing data
         }
       }
-      return rec;
+
+      return { ...rec, video_url: videoUrl, transcript: transcript || [] };
     })
   );
 
