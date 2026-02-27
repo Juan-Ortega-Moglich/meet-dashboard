@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBot } from "@/lib/recall";
+import { getBot, getBotTranscript } from "@/lib/recall";
 import { supabase } from "@/lib/supabase";
 
 // POST /api/recall/webhook — Receive events from Recall.ai
@@ -92,33 +92,12 @@ async function handleBotDone(botId: string) {
     // Get video URL
     const videoUrl = recording.media_shortcuts?.video_mixed?.data?.download_url || null;
 
-    // Fetch transcript if available
+    // Fetch transcript using the shared helper
     let transcript: Array<{ timestamp: string; speaker: string; text: string }> = [];
-    const transcriptUrl = recording.media_shortcuts?.transcript?.data?.download_url;
-    if (transcriptUrl) {
-      try {
-        const res = await fetch(transcriptUrl);
-        const transcriptData = await res.json();
-        // Recall transcript format: array of utterances with words, speaker, timestamps
-        if (Array.isArray(transcriptData)) {
-          transcript = transcriptData.map((entry: {
-            words: Array<{ text: string; start_timestamp: number }>;
-            speaker: string;
-            speaker_id?: number;
-          }) => {
-            const startSec = entry.words?.[0]?.start_timestamp || 0;
-            const minutes = Math.floor(startSec / 60);
-            const seconds = Math.floor(startSec % 60);
-            return {
-              timestamp: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`,
-              speaker: entry.speaker || `Speaker ${entry.speaker_id || 0}`,
-              text: entry.words?.map((w: { text: string }) => w.text).join(" ") || "",
-            };
-          });
-        }
-      } catch (err) {
-        console.error("[Webhook] Failed to fetch transcript:", err);
-      }
+    try {
+      transcript = await getBotTranscript(botId);
+    } catch (err) {
+      console.error("[Webhook] Failed to fetch transcript:", err);
     }
 
     // Detect platform from meeting URL
