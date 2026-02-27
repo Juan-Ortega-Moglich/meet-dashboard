@@ -36,7 +36,7 @@ interface Recording {
 
 // --- Constants ---
 
-const hostOptions = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest"];
+const defaultHosts = ["Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest"];
 
 // --- Helpers ---
 
@@ -70,12 +70,15 @@ function downloadTranscript(recording: Recording) {
 // --- Components ---
 
 function HostSidebar({
+  hosts,
   selectedHost,
   onSelect,
 }: {
+  hosts: string[];
   selectedHost: string;
   onSelect: (host: string) => void;
 }) {
+  const allOptions = ["Todos", ...hosts];
   return (
     <div className="w-full md:w-56 shrink-0">
       <div className="flex items-center gap-2 mb-3 px-1">
@@ -83,7 +86,7 @@ function HostSidebar({
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Anfitriones</h3>
       </div>
       <nav className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
-        {hostOptions.map((host) => {
+        {allOptions.map((host) => {
           const isActive = selectedHost === host;
           return (
             <button
@@ -249,6 +252,7 @@ export default function GrabacionesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedHost, setSelectedHost] = useState("Todos");
   const [recordings, setRecordings] = useState<Recording[]>([]);
+  const [hosts, setHosts] = useState<string[]>(defaultHosts);
   const [loading, setLoading] = useState(true);
 
   const fetchRecordings = useCallback(async () => {
@@ -260,6 +264,11 @@ export default function GrabacionesPage() {
       if (res.ok) {
         const data = await res.json();
         setRecordings(data.recordings || []);
+        // Update sidebar hosts from real data (merge with defaults)
+        if (data.hosts && data.hosts.length > 0) {
+          const merged = [...new Set([...data.hosts, ...defaultHosts])].sort();
+          setHosts(merged);
+        }
       } else {
         setRecordings([]);
       }
@@ -287,7 +296,7 @@ export default function GrabacionesPage() {
   return (
     <div className="flex flex-col md:flex-row gap-6">
       {/* Left sidebar — host selection */}
-      <HostSidebar selectedHost={selectedHost} onSelect={handleHostSelect} />
+      <HostSidebar hosts={hosts} selectedHost={selectedHost} onSelect={handleHostSelect} />
 
       {/* Right panel — recordings */}
       <div className="flex-1 min-w-0">

@@ -64,5 +64,13 @@ export async function GET(req: NextRequest) {
     })
   );
 
-  return NextResponse.json({ recordings });
+  // Extract unique hosts from all recordings (unfiltered) for the sidebar
+  const { data: allRecs } = await supabase
+    .from("recordings")
+    .select("host")
+    .eq("status", "done");
+
+  const hosts = [...new Set((allRecs || []).map((r) => r.host).filter(Boolean))].sort();
+
+  return NextResponse.json({ recordings, hosts });
 }
