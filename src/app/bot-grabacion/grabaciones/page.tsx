@@ -35,7 +35,7 @@ interface Recording {
 
 // --- Mock Data (fallback until real recordings exist) ---
 
-const hostOptions = ["Todos", "Wisdom", "Biofleming", "Inbest", "Pablo", "Andres", "Operaciones"];
+const hostOptions = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest"];
 
 const mockRecordings: Recording[] = [
   {
