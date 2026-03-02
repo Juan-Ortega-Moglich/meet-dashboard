@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Calendar, Clock, Video, X, Link2, ChevronDown, Bot, Loader2, CheckCircle2, AlertCircle, LogIn, ExternalLink } from "lucide-react";
+import { Plus, Calendar, Clock, Video, X, Link2, ChevronDown, Bot, Loader2, CheckCircle2, AlertCircle, LogIn, ExternalLink, PhoneOff } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 // --- Types ---
@@ -287,8 +287,10 @@ function CalendarMeetingCard({
   );
 }
 
-function ActiveBotCard({ bot }: { bot: ActiveBot }) {
+function ActiveBotCard({ bot, onLeave, leaving }: { bot: ActiveBot; onLeave: (recallBotId: string) => void; leaving: boolean }) {
+  const [confirming, setConfirming] = useState(false);
   const time = new Date(bot.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  const isActive = !["done", "fatal", "call_ended"].includes(bot.status);
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -303,10 +305,47 @@ function ActiveBotCard({ bot }: { bot: ActiveBot }) {
         </div>
         <RecallBotBadge status={bot.status} />
       </div>
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Clock size={14} className="shrink-0" />
-        <span>{time}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Clock size={14} className="shrink-0" />
+          <span>{time}</span>
+        </div>
+        {isActive && !confirming && (
+          <button
+            onClick={() => setConfirming(true)}
+            disabled={leaving}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
+          >
+            <PhoneOff size={12} />
+            Sacar bot
+          </button>
+        )}
       </div>
+      {confirming && (
+        <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-200">
+          <p className="text-xs text-red-700 font-medium mb-2">
+            ¿Estás seguro de sacar el bot? Dejará de grabar.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirming(false)}
+              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { onLeave(bot.recall_bot_id); setConfirming(false); }}
+              disabled={leaving}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
+            >
+              {leaving ? <Loader2 size={12} className="animate-spin" /> : <PhoneOff size={12} />}
+              Sí, sacar bot
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -537,6 +576,25 @@ export default function BotGrabacionPage() {
     }
   };
 
+  const [leavingBotId, setLeavingBotId] = useState<string | null>(null);
+
+  const handleLeaveBot = async (recallBotId: string) => {
+    setLeavingBotId(recallBotId);
+    try {
+      const res = await fetch("/api/recall/bot/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recall_bot_id: recallBotId }),
+      });
+      if (res.ok) {
+        setTimeout(fetchActiveBots, 1000);
+      }
+    } catch { /* silently fail */ }
+    finally {
+      setTimeout(() => setLeavingBotId(null), 2000);
+    }
+  };
+
   const liveActiveBots = activeBots.filter((b) => !["done", "fatal", "call_ended"].includes(b.status));
   const completedBots = activeBots.filter((b) => ["done", "call_ended"].includes(b.status));
 
@@ -607,7 +665,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">{liveActiveBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} />)}
+            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} />)}
           </div>
         </div>
       )}
@@ -621,7 +679,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{completedBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {completedBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} />)}
+            {completedBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} />)}
           </div>
         </div>
       )}

@@ -22,17 +22,26 @@ export async function POST(req: NextRequest) {
       )
       .join("\n");
 
-    const systemPrompt = `Eres un asistente experto en generar minutas de reuniones profesionales.
-Genera minutas claras, estructuradas y en español.
-La minuta debe incluir:
-1. **Datos de la reunión** (título, fecha, anfitrión, duración)
-2. **Participantes** (extraídos de la transcripción)
-3. **Resumen ejecutivo** (2-3 oraciones)
-4. **Puntos tratados** (temas discutidos con detalle)
-5. **Acuerdos y compromisos** (acciones concretas con responsables si se mencionan)
-6. **Próximos pasos** (si se mencionan)
+    const systemPrompt = `Eres un asistente experto en generar minutas de reuniones profesionales en español.
+Debes devolver ÚNICAMENTE un JSON válido (sin markdown, sin backticks, sin texto adicional) con exactamente estas claves:
 
-Formato la minuta en markdown limpio y profesional.`;
+{
+  "minutaReunion": "Título o tema principal de la reunión",
+  "fecha": "Fecha formateada de la reunión",
+  "asistentes": "Lista de asistentes separados por comas, extraídos de la transcripción",
+  "participacion": "Breve descripción del rol o participación de cada asistente",
+  "ordenDelDia": "Puntos tratados en la reunión, cada uno en una línea nueva",
+  "pendientes": "Tareas o temas que quedaron pendientes, cada uno en una línea nueva",
+  "resumen": "Resumen ejecutivo de la reunión en 3-5 oraciones",
+  "compromisos": "Compromisos y tareas asignadas con responsables, cada uno en una línea nueva",
+  "conclusion": "Conclusión general de la reunión"
+}
+
+IMPORTANTE:
+- Responde SOLO con el JSON, sin markdown ni explicaciones
+- Extrae los nombres de los participantes de la transcripción
+- Sé conciso y profesional
+- Todo en español`;
 
     const userPrompt = `Genera la minuta de la siguiente reunión:
 
@@ -54,7 +63,28 @@ ${transcriptText}`;
       max_tokens: 4000,
     });
 
-    const minuta = completion.choices[0]?.message?.content || "No se pudo generar la minuta.";
+    const raw = completion.choices[0]?.message?.content || "{}";
+
+    // Parse the JSON response
+    let minuta;
+    try {
+      // Remove potential markdown code fences
+      const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      minuta = JSON.parse(cleaned);
+    } catch {
+      // Fallback: return as unstructured
+      minuta = {
+        minutaReunion: title,
+        fecha: date,
+        asistentes: "",
+        participacion: "",
+        ordenDelDia: raw,
+        pendientes: "",
+        resumen: "",
+        compromisos: "",
+        conclusion: "",
+      };
+    }
 
     return NextResponse.json({ minuta });
   } catch (error) {

@@ -44,3 +44,33 @@ body {
   background-clip: text;
   animation: shimmer 3s linear infinite;
 }
+
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print\:hidden,
+  aside,
+  nav,
+  header {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print\:rounded-none { border-radius: 0 !important; }
+  .print\:border-0 { border: 0 !important; }
+  .print\:mb-0 { margin-bottom: 0 !important; }
+  .print\:break-after-page { break-after: page; }
+
+  @page {
+    size: letter;
+    margin: 0;
+  }
+}

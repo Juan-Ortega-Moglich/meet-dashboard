@@ -15,8 +15,6 @@ import {
   Users,
   Sparkles,
   X,
-  Copy,
-  Check,
 } from "lucide-react";
 
 // --- Types ---
@@ -36,6 +34,18 @@ interface Recording {
   platform: string;
   video_url: string | null;
   transcript: TranscriptBlock[];
+}
+
+interface MinutaData {
+  minutaReunion: string;
+  fecha: string;
+  asistentes: string;
+  participacion: string;
+  ordenDelDia: string;
+  pendientes: string;
+  resumen: string;
+  compromisos: string;
+  conclusion: string;
 }
 
 // --- Constants ---
@@ -67,6 +77,154 @@ function downloadTranscript(recording: Recording) {
   const a = document.createElement("a");
   a.href = url;
   a.download = `transcripcion-${recording.title.toLowerCase().replace(/\s+/g, "-")}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// --- PDF Generation ---
+
+async function generateMinutaPDF(data: MinutaData) {
+  const { PDFDocument, rgb, StandardFonts } = await import("pdf-lib");
+
+  // Load the template PDF
+  const templateUrl = "/templates/operaciones.pdf";
+  const templateBytes = await fetch(templateUrl).then((res) => res.arrayBuffer());
+  const pdfDoc = await PDFDocument.load(templateBytes);
+
+  const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  const pages = pdfDoc.getPages();
+  const page1 = pages[0];
+  const page2 = pages[1];
+
+  const { height: h1 } = page1.getSize();
+  const { height: h2 } = page2.getSize();
+
+  const textColor = rgb(0.15, 0.15, 0.15);
+  const fontSize = 8.5;
+  const lineHeight = 12;
+
+  // Helper: draw wrapped text in a bounding box
+  function drawWrappedText(
+    page: typeof page1,
+    text: string,
+    x: number,
+    yStart: number,
+    maxWidth: number,
+    maxLines: number,
+    font: typeof helvetica,
+    size: number = fontSize
+  ) {
+    const words = text.split(/\s+/);
+    let line = "";
+    let y = yStart;
+    let linesDrawn = 0;
+
+    for (const word of words) {
+      const testLine = line ? `${line} ${word}` : word;
+      const testWidth = font.widthOfTextAtSize(testLine, size);
+
+      if (testWidth > maxWidth && line) {
+        if (linesDrawn >= maxLines) return;
+        page.drawText(line, { x, y, size, font, color: textColor });
+        y -= lineHeight;
+        linesDrawn++;
+        line = word;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line && linesDrawn < maxLines) {
+      page.drawText(line, { x, y, size, font, color: textColor });
+    }
+  }
+
+  // Helper: draw multiline text (respects \n)
+  function drawMultilineText(
+    page: typeof page1,
+    text: string,
+    x: number,
+    yStart: number,
+    maxWidth: number,
+    maxLines: number,
+    font: typeof helvetica,
+    size: number = fontSize
+  ) {
+    const paragraphs = text.split("\n");
+    let y = yStart;
+    let totalLines = 0;
+
+    for (const para of paragraphs) {
+      if (totalLines >= maxLines) return;
+      const words = para.split(/\s+/).filter(Boolean);
+      if (words.length === 0) {
+        y -= lineHeight;
+        totalLines++;
+        continue;
+      }
+      let line = "";
+      for (const word of words) {
+        const testLine = line ? `${line} ${word}` : word;
+        const testWidth = font.widthOfTextAtSize(testLine, size);
+        if (testWidth > maxWidth && line) {
+          if (totalLines >= maxLines) return;
+          page.drawText(line, { x, y, size, font, color: textColor });
+          y -= lineHeight;
+          totalLines++;
+          line = word;
+        } else {
+          line = testLine;
+        }
+      }
+      if (line && totalLines < maxLines) {
+        page.drawText(line, { x, y, size, font, color: textColor });
+        y -= lineHeight;
+        totalLines++;
+      }
+    }
+  }
+
+  // ========== PAGE 1 ==========
+  // Coordinates based on the template layout (y from bottom)
+
+  // --- Top left box: Minuta de Reunión, Fecha, Asistentes ---
+  const topBoxY = h1 - 160;
+  page1.drawText(data.minutaReunion, { x: 62, y: topBoxY, size: 9, font: helveticaBold, color: textColor });
+  page1.drawText(data.fecha, { x: 62, y: topBoxY - 22, size: fontSize, font: helvetica, color: textColor });
+  drawWrappedText(page1, data.asistentes, 62, topBoxY - 44, 210, 5, helvetica);
+
+  // --- Top right box: Participación ---
+  drawMultilineText(page1, data.participacion, 320, topBoxY, 220, 8, helvetica);
+
+  // --- Middle left box: Orden del día ---
+  const midBoxY = h1 - 330;
+  drawMultilineText(page1, data.ordenDelDia, 62, midBoxY, 210, 12, helvetica);
+
+  // --- Middle right box: Pendientes ---
+  drawMultilineText(page1, data.pendientes, 320, midBoxY, 220, 12, helvetica);
+
+  // --- Bottom box: Resumen ---
+  const bottomBoxY = h1 - 530;
+  drawMultilineText(page1, data.resumen, 62, bottomBoxY, 480, 16, helvetica);
+
+  // ========== PAGE 2 ==========
+
+  // --- Top box: Compromisos y tareas pendientes ---
+  const compBoxY = h2 - 165;
+  drawMultilineText(page2, data.compromisos, 62, compBoxY, 480, 18, helvetica);
+
+  // --- Bottom box: Conclusión ---
+  const concBoxY = h2 - 440;
+  drawMultilineText(page2, data.conclusion, 62, concBoxY, 480, 18, helvetica);
+
+  // Save and download
+  const pdfBytes = await pdfDoc.save();
+  const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `minuta-${data.minutaReunion.toLowerCase().replace(/\s+/g, "-").slice(0, 40)}.pdf`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -116,59 +274,83 @@ function HostSidebar({
   );
 }
 
+function MinutaEditableField({
+  label,
+  value,
+  onChange,
+  rows = 3,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-[#2055e4] uppercase tracking-wider mb-1.5">
+        {label}
+      </label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/20 focus:border-[#2055e4] transition-all resize-y leading-relaxed"
+      />
+    </div>
+  );
+}
+
 function MinutaModal({
   minuta,
-  title,
   onClose,
 }: {
-  minuta: string;
-  title: string;
+  minuta: MinutaData;
   onClose: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [data, setData] = useState<MinutaData>(minuta);
+  const [downloading, setDownloading] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(minuta);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const update = (key: keyof MinutaData, value: string) => {
+    setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([minuta], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `minuta-${title.toLowerCase().replace(/\s+/g, "-")}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      await generateMinutaPDF(data);
+    } catch (err) {
+      console.error("PDF generation error:", err);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles size={18} className="text-[#2055e4]" />
             <h3 className="font-semibold text-gray-900">Minuta generada</h3>
+            <span className="text-xs text-gray-400 ml-2">Edita los campos antes de descargar</span>
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+              onClick={handleDownloadPDF}
+              disabled={downloading}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}
             >
-              {copied ? <Check size={13} /> : <Copy size={13} />}
-              {copied ? "Copiado" : "Copiar"}
-            </button>
-            <button
-              onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <Download size={13} />
-              Descargar .md
+              {downloading ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
+              Descargar PDF
             </button>
             <button
               onClick={onClose}
@@ -179,19 +361,32 @@ function MinutaModal({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-600 prose-strong:text-gray-800 prose-li:text-gray-600">
-            {minuta.split("\n").map((line, i) => {
-              if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-bold mt-4 mb-2">{line.slice(2)}</h1>;
-              if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-semibold mt-4 mb-2 text-[#2055e4]">{line.slice(3)}</h2>;
-              if (line.startsWith("### ")) return <h3 key={i} className="text-base font-semibold mt-3 mb-1">{line.slice(4)}</h3>;
-              if (line.startsWith("- ") || line.startsWith("* ")) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
-              if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="font-semibold">{line.slice(2, -2)}</p>;
-              if (line.trim() === "") return <br key={i} />;
-              return <p key={i} className="leading-relaxed">{line}</p>;
-            })}
+        {/* Content — editable fields */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          {/* Row 1: Minuta + Fecha side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <MinutaEditableField label="Minuta de Reunión" value={data.minutaReunion} onChange={(v) => update("minutaReunion", v)} rows={1} />
+              <MinutaEditableField label="Fecha" value={data.fecha} onChange={(v) => update("fecha", v)} rows={1} />
+              <MinutaEditableField label="Asistentes" value={data.asistentes} onChange={(v) => update("asistentes", v)} rows={3} />
+            </div>
+            <MinutaEditableField label="Participación" value={data.participacion} onChange={(v) => update("participacion", v)} rows={7} />
           </div>
+
+          {/* Row 2: Orden del día + Pendientes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MinutaEditableField label="Orden del día" value={data.ordenDelDia} onChange={(v) => update("ordenDelDia", v)} rows={6} />
+            <MinutaEditableField label="Pendientes" value={data.pendientes} onChange={(v) => update("pendientes", v)} rows={6} />
+          </div>
+
+          {/* Row 3: Resumen */}
+          <MinutaEditableField label="Resumen" value={data.resumen} onChange={(v) => update("resumen", v)} rows={5} />
+
+          {/* Row 4: Compromisos */}
+          <MinutaEditableField label="Compromisos y tareas pendientes" value={data.compromisos} onChange={(v) => update("compromisos", v)} rows={5} />
+
+          {/* Row 5: Conclusión */}
+          <MinutaEditableField label="Conclusión" value={data.conclusion} onChange={(v) => update("conclusion", v)} rows={5} />
         </div>
       </div>
     </div>
@@ -208,7 +403,7 @@ function RecordingCard({
   onToggle: () => void;
 }) {
   const [generatingMinuta, setGeneratingMinuta] = useState(false);
-  const [minuta, setMinuta] = useState<string | null>(null);
+  const [minuta, setMinuta] = useState<MinutaData | null>(null);
   const [minutaError, setMinutaError] = useState<string | null>(null);
 
   const handleGenerateMinuta = async () => {
@@ -235,6 +430,7 @@ function RecordingCard({
       setGeneratingMinuta(false);
     }
   };
+
   return (
     <div
       className={`bg-white rounded-2xl border transition-all duration-200 ${
@@ -356,7 +552,6 @@ function RecordingCard({
           {minuta && (
             <MinutaModal
               minuta={minuta}
-              title={recording.title}
               onClose={() => setMinuta(null)}
             />
           )}
@@ -414,7 +609,6 @@ export default function GrabacionesPage() {
       if (res.ok) {
         const data = await res.json();
         setRecordings(data.recordings || []);
-        // Update sidebar hosts from real data (merge with defaults)
         if (data.hosts && data.hosts.length > 0) {
           const merged = [...new Set([...data.hosts, ...defaultHosts])].sort();
           setHosts(merged);
@@ -445,12 +639,9 @@ export default function GrabacionesPage() {
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
-      {/* Left sidebar — host selection */}
       <HostSidebar hosts={hosts} selectedHost={selectedHost} onSelect={handleHostSelect} />
 
-      {/* Right panel — recordings */}
       <div className="flex-1 min-w-0">
-        {/* Header */}
         <div className="flex items-center gap-2 mb-5">
           <Video size={18} className="text-[#2055e4]" />
           <h2 className="text-lg font-semibold text-gray-900">
@@ -463,7 +654,6 @@ export default function GrabacionesPage() {
           )}
         </div>
 
-        {/* Loading state */}
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 size={24} className="animate-spin text-[#2055e4]" />

@@ -7,6 +7,7 @@ import {
   FileText,
   Phone,
   Bot,
+  LayoutTemplate,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -34,6 +35,11 @@ const menuItems = [
     label: "Bot de Grabación",
     href: "/bot-grabacion",
     icon: Bot,
+  },
+  {
+    label: "Plantillas",
+    href: "/plantillas",
+    icon: LayoutTemplate,
   },
 ];
 

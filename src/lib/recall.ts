@@ -51,6 +51,18 @@ export async function createBot(params: CreateBotParams) {
         },
         video_mixed_mp4: {},
       },
+      automatic_leave: {
+        silence_detection: {
+          timeout: 300,
+          activate_after: 60,
+        },
+        everyone_left_timeout: {
+          timeout: 2,
+          activate_after: 0,
+        },
+        noone_joined_timeout: 300,
+        waiting_room_timeout: 300,
+      },
     },
   });
 }
@@ -59,6 +71,13 @@ export async function getBot(botId: string) {
   return recallFetch({
     method: "GET",
     path: `/bot/${botId}/`,
+  });
+}
+
+export async function removeBot(botId: string) {
+  return recallFetch({
+    method: "POST",
+    path: `/bot/${botId}/leave_call/`,
   });
 }
 
