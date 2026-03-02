@@ -13,6 +13,10 @@ import {
   Loader2,
   ChevronDown,
   Users,
+  Sparkles,
+  X,
+  Copy,
+  Check,
 } from "lucide-react";
 
 // --- Types ---
@@ -112,6 +116,88 @@ function HostSidebar({
   );
 }
 
+function MinutaModal({
+  minuta,
+  title,
+  onClose,
+}: {
+  minuta: string;
+  title: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(minuta);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownload = () => {
+    const blob = new Blob([minuta], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `minuta-${title.toLowerCase().replace(/\s+/g, "-")}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Sparkles size={18} className="text-[#2055e4]" />
+            <h3 className="font-semibold text-gray-900">Minuta generada</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              {copied ? <Check size={13} /> : <Copy size={13} />}
+              {copied ? "Copiado" : "Copiar"}
+            </button>
+            <button
+              onClick={handleDownload}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Download size={13} />
+              Descargar .md
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-600 prose-strong:text-gray-800 prose-li:text-gray-600">
+            {minuta.split("\n").map((line, i) => {
+              if (line.startsWith("# ")) return <h1 key={i} className="text-xl font-bold mt-4 mb-2">{line.slice(2)}</h1>;
+              if (line.startsWith("## ")) return <h2 key={i} className="text-lg font-semibold mt-4 mb-2 text-[#2055e4]">{line.slice(3)}</h2>;
+              if (line.startsWith("### ")) return <h3 key={i} className="text-base font-semibold mt-3 mb-1">{line.slice(4)}</h3>;
+              if (line.startsWith("- ") || line.startsWith("* ")) return <li key={i} className="ml-4 list-disc">{line.slice(2)}</li>;
+              if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="font-semibold">{line.slice(2, -2)}</p>;
+              if (line.trim() === "") return <br key={i} />;
+              return <p key={i} className="leading-relaxed">{line}</p>;
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RecordingCard({
   recording,
   isExpanded,
@@ -121,6 +207,34 @@ function RecordingCard({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const [generatingMinuta, setGeneratingMinuta] = useState(false);
+  const [minuta, setMinuta] = useState<string | null>(null);
+  const [minutaError, setMinutaError] = useState<string | null>(null);
+
+  const handleGenerateMinuta = async () => {
+    setGeneratingMinuta(true);
+    setMinutaError(null);
+    try {
+      const res = await fetch("/api/minuta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: recording.title,
+          date: recording.date,
+          host: recording.host,
+          duration: recording.duration,
+          transcript: recording.transcript,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al generar la minuta");
+      setMinuta(data.minuta);
+    } catch (err) {
+      setMinutaError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setGeneratingMinuta(false);
+    }
+  };
   return (
     <div
       className={`bg-white rounded-2xl border transition-all duration-200 ${
@@ -209,7 +323,43 @@ function RecordingCard({
                 Descargar transcripción
               </button>
             )}
+            {recording.transcript.length > 0 && (
+              <button
+                onClick={handleGenerateMinuta}
+                disabled={generatingMinuta}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}
+              >
+                {generatingMinuta ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Generando minuta...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={15} />
+                    Generar minuta
+                  </>
+                )}
+              </button>
+            )}
           </div>
+
+          {/* Minuta error */}
+          {minutaError && (
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+              {minutaError}
+            </div>
+          )}
+
+          {/* Minuta modal */}
+          {minuta && (
+            <MinutaModal
+              minuta={minuta}
+              title={recording.title}
+              onClose={() => setMinuta(null)}
+            />
+          )}
 
           {/* Transcript */}
           {recording.transcript.length > 0 && (

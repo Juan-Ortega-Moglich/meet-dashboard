@@ -46,14 +46,14 @@ interface CalendarEvent {
 
 // --- Mock Data (for hosts without calendar integration) ---
 
-const hosts: { id: string; name: string; connected: boolean }[] = [
-  { id: "operaciones", name: "Operaciones", connected: true },
-  { id: "andres", name: "Andres", connected: true },
-  { id: "pablo", name: "Pablo", connected: true },
-  { id: "rafa", name: "Rafa", connected: true },
-  { id: "wisdom", name: "Wisdom", connected: true },
-  { id: "biofleming", name: "Biofleming", connected: true },
-  { id: "inbest", name: "Inbest", connected: true },
+const hosts: { id: string; name: string; connected: boolean; calendarType: "google" | "ics" }[] = [
+  { id: "operaciones", name: "Operaciones", connected: true, calendarType: "google" },
+  { id: "andres", name: "Andres", connected: true, calendarType: "google" },
+  { id: "pablo", name: "Pablo", connected: true, calendarType: "google" },
+  { id: "rafa", name: "Rafa", connected: true, calendarType: "google" },
+  { id: "wisdom", name: "Wisdom", connected: true, calendarType: "ics" },
+  { id: "biofleming", name: "Biofleming", connected: true, calendarType: "google" },
+  { id: "inbest", name: "Inbest", connected: true, calendarType: "google" },
 ];
 
 const mockHostData: Record<string, { meetingsToday: Meeting[]; upcomingMeetings: Meeting[] }> = {
@@ -235,7 +235,9 @@ function CalendarMeetingCard({
           </div>
           <div className="min-w-0">
             <p className="font-medium text-gray-900 truncate">{event.summary}</p>
-            <p className="text-xs text-gray-500">Google Meet</p>
+            <p className="text-xs text-gray-500">
+              {event.meetLink?.includes("teams") ? "Microsoft Teams" : "Google Meet"}
+            </p>
           </div>
         </div>
         {isNow && (
@@ -321,10 +323,39 @@ function JoinBotModal({
   const [link, setLink] = useState("");
   const [title, setTitle] = useState("");
   const [sending, setSending] = useState(false);
+  const [fetchingTitle, setFetchingTitle] = useState(false);
   const [result, setResult] = useState<"success" | "error" | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   if (!open) return null;
+
+  // Auto-detect meeting title from calendar when URL is pasted
+  const handleLinkChange = async (url: string) => {
+    setLink(url);
+
+    // Only look up if it looks like a valid meeting URL
+    const trimmed = url.trim();
+    if (
+      trimmed.length > 15 &&
+      (trimmed.includes("meet.google.com") ||
+        trimmed.includes("zoom.us") ||
+        trimmed.includes("teams.live.com") ||
+        trimmed.includes("teams.microsoft.com"))
+    ) {
+      setFetchingTitle(true);
+      try {
+        const res = await fetch(`/api/meeting-title?url=${encodeURIComponent(trimmed)}`);
+        const data = await res.json();
+        if (data.title) {
+          setTitle(data.title);
+        }
+      } catch {
+        // Silently fail, user can still type manually
+      } finally {
+        setFetchingTitle(false);
+      }
+    }
+  };
 
   const handleConfirm = async () => {
     if (!link.trim()) return;
@@ -375,17 +406,22 @@ function JoinBotModal({
           </button>
         </div>
         <p className="text-sm text-gray-500 mb-4">
-          Pega el link de la reunión (Google Meet, Zoom, etc.) para que el bot se una y comience a grabar.
+          Pega el link de la reunión para que el bot se una y comience a grabar. El nombre se detecta automáticamente.
         </p>
         <div className="relative mb-3">
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nombre de la reunión (opcional)"
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all" />
-        </div>
-        <div className="relative mb-5">
           <Link2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://meet.google.com/abc-defg-hij"
+          <input type="url" value={link} onChange={(e) => handleLinkChange(e.target.value)} placeholder="https://meet.google.com/abc-defg-hij"
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
             autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleConfirm(); }} />
+        </div>
+        <div className="relative mb-5">
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+            placeholder={fetchingTitle ? "Buscando nombre..." : "Nombre de la reunión (auto-detectado)"}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
+          />
+          {fetchingTitle && (
+            <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#2055e4]" />
+          )}
         </div>
         {result === "success" && (
           <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-green-50 text-green-700 text-sm">
@@ -450,7 +486,7 @@ export default function BotGrabacionPage() {
       const todayData = await todayRes.json();
       const upcomingData = await upcomingRes.json();
 
-      if (todayData.authorized === false) {
+      if (todayData.authorized === false && selectedHost.calendarType !== "ics") {
         setCalendarAuthorized(false);
         setTodayEvents([]);
         setUpcomingEvents([]);
@@ -541,8 +577,8 @@ export default function BotGrabacionPage() {
         </button>
       </div>
 
-      {/* Connect Calendar prompt (for connected hosts not yet authorized) */}
-      {isConnectedHost && calendarAuthorized === false && (
+      {/* Connect Calendar prompt (for Google Calendar hosts not yet authorized) */}
+      {isConnectedHost && calendarAuthorized === false && selectedHost.calendarType === "google" && (
         <div className="mb-6 md:mb-8 bg-white rounded-2xl border border-blue-200 p-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 mb-4">
             <Calendar size={24} className="text-[#2055e4]" />

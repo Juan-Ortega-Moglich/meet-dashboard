@@ -43,7 +43,10 @@ export async function createBot(params: CreateBotParams) {
       recording_config: {
         transcript: {
           provider: {
-            meeting_captions: {},
+            recallai_streaming: {
+              mode: "prioritize_accuracy",
+              language: "auto",
+            },
           },
         },
         video_mixed_mp4: {},

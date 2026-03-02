@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCalendarEvents } from "@/lib/google";
+import { getIcsUrl, getIcsCalendarEvents } from "@/lib/ical";
 
 // GET /api/calendar?host=Operaciones — Get calendar events for a host
 export async function GET(req: NextRequest) {
@@ -36,9 +37,15 @@ export async function GET(req: NextRequest) {
       timeMax = nextWeek.toISOString();
     }
 
-    const events = await getCalendarEvents(host, timeMin, timeMax);
+    // Check if this host uses ICS (Outlook/Teams) instead of Google Calendar
+    if (getIcsUrl(host)) {
+      const events = await getIcsCalendarEvents(host, timeMin, timeMax);
+      return NextResponse.json({ events, authorized: true, source: "ics" });
+    }
 
-    return NextResponse.json({ events, authorized: true });
+    // Default: Google Calendar
+    const events = await getCalendarEvents(host, timeMin, timeMax);
+    return NextResponse.json({ events, authorized: true, source: "google" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
 
