@@ -221,22 +221,99 @@ function CalendarMeetingCard({
   event,
   onSendBot,
   sendingBotId,
-  scheduled,
+  botStatus,
 }: {
   event: CalendarEvent;
   onSendBot: (event: CalendarEvent) => void;
   sendingBotId: string | null;
-  scheduled: boolean;
+  botStatus: string | null; // null = no bot, "ready" = programado, "in_call_recording" = grabando, etc.
 }) {
   const hasEnded = new Date(event.end) < new Date();
-  const isNow = new Date(event.start) <= new Date() && new Date(event.end) >= new Date();
+  const hasBot = botStatus !== null;
+  const isRecording = botStatus === "in_call_recording";
+  const isBotInCall = botStatus === "in_call_not_recording" || botStatus === "in_call_recording" || botStatus === "in_waiting_room" || botStatus === "joining_call";
+  const isBotDone = botStatus === "done" || botStatus === "call_ended";
+  const isScheduled = botStatus === "ready";
+
+  // Badge logic based on bot state
+  const getBadge = () => {
+    if (isRecording) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+          </span>
+          Grabando
+        </span>
+      );
+    }
+    if (isBotInCall) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500" />
+          </span>
+          Uniéndose
+        </span>
+      );
+    }
+    if (isBotDone && hasEnded) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+          <span className="h-2 w-2 rounded-full bg-gray-400" />
+          Grabación lista
+        </span>
+      );
+    }
+    if (isBotDone) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+          <span className="h-2 w-2 rounded-full bg-gray-400" />
+          Grabación lista
+        </span>
+      );
+    }
+    if (isScheduled) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+          <span className="h-2 w-2 rounded-full bg-blue-500" />
+          Bot programado
+        </span>
+      );
+    }
+    if (hasEnded) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+          <span className="h-2 w-2 rounded-full bg-gray-400" />
+          Sin bot
+        </span>
+      );
+    }
+    // No bot, meeting hasn't started
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+        <span className="h-2 w-2 rounded-full bg-yellow-500" />
+        Sin bot
+      </span>
+    );
+  };
+
+  const borderClass = isRecording
+    ? "border-green-300 shadow-md ring-1 ring-green-100"
+    : isBotInCall
+      ? "border-yellow-200 shadow-md ring-1 ring-yellow-50"
+      : isScheduled
+        ? "border-blue-200 ring-1 ring-blue-50"
+        : "border-gray-200 hover:shadow-md";
 
   return (
-    <div className={`bg-white rounded-xl border p-4 transition-all ${isNow ? "border-green-300 shadow-md ring-1 ring-green-100" : scheduled ? "border-blue-200 ring-1 ring-blue-50" : "border-gray-200 hover:shadow-md"}`}>
+    <div className={`bg-white rounded-xl border p-4 transition-all ${borderClass}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className={`p-2 rounded-lg shrink-0 ${isNow ? "bg-green-50" : "bg-blue-50"}`}>
-            <Video size={18} className={isNow ? "text-green-600" : "text-[#2055e4]"} />
+          <div className={`p-2 rounded-lg shrink-0 ${isRecording ? "bg-green-50" : "bg-blue-50"}`}>
+            <Video size={18} className={isRecording ? "text-green-600" : "text-[#2055e4]"} />
           </div>
           <div className="min-w-0">
             <p className="font-medium text-gray-900 truncate">{event.summary}</p>
@@ -246,40 +323,14 @@ function CalendarMeetingCard({
             </p>
           </div>
         </div>
-        {isNow && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-            </span>
-            En curso
-          </span>
-        )}
-        {hasEnded && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
-            <span className="h-2 w-2 rounded-full bg-gray-400" />
-            Finalizado
-          </span>
-        )}
-        {!isNow && !hasEnded && scheduled && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-            <span className="h-2 w-2 rounded-full bg-blue-500" />
-            Bot programado
-          </span>
-        )}
-        {!isNow && !hasEnded && !scheduled && (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-            <span className="h-2 w-2 rounded-full bg-yellow-500" />
-            Pendiente
-          </span>
-        )}
+        {getBadge()}
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm text-gray-500">
           <Clock size={14} className="shrink-0" />
           <span>{formatEventTime(event.start)} - {formatEventTime(event.end)}</span>
         </div>
-        {event.meetLink && !hasEnded && !scheduled && (
+        {event.meetLink && !hasEnded && !hasBot && (
           <button
             onClick={() => onSendBot(event)}
             disabled={sendingBotId === event.id}
@@ -293,12 +344,6 @@ function CalendarMeetingCard({
             )}
             Enviar Bot
           </button>
-        )}
-        {scheduled && !hasEnded && (
-          <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600">
-            <CheckCircle2 size={12} />
-            Listo
-          </span>
         )}
       </div>
     </div>
@@ -523,7 +568,7 @@ export default function BotGrabacionPage() {
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [sendingBotId, setSendingBotId] = useState<string | null>(null);
-  const [scheduledMeetings, setScheduledMeetings] = useState<Set<string>>(new Set());
+  const [botStatusByUrl, setBotStatusByUrl] = useState<Map<string, string>>(new Map());
   const [autoScheduleRan, setAutoScheduleRan] = useState(false);
 
   const isTodos = selectedHostId === "todos";
@@ -539,8 +584,8 @@ export default function BotGrabacionPage() {
         const data = await res.json();
         const bots: ActiveBot[] = data.bots || [];
         setActiveBots(bots);
-        // Track which meeting URLs have bots (for "scheduled" badge)
-        setScheduledMeetings(new Set(bots.map((b) => b.meeting_url)));
+        // Track bot status per meeting URL
+        setBotStatusByUrl(new Map(bots.map((b) => [b.meeting_url, b.status])));
       }
     } catch { /* silently fail */ }
   }, [selectedHost.name, isTodos]);
@@ -824,7 +869,7 @@ export default function BotGrabacionPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {todayEvents.map((event) => (
-                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} scheduled={!!(event.meetLink && scheduledMeetings.has(event.meetLink))} />
+                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} botStatus={event.meetLink ? (botStatusByUrl.get(event.meetLink) || null) : null} />
                     ))}
                   </div>
                 )}
@@ -844,7 +889,7 @@ export default function BotGrabacionPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {upcomingEvents.map((event) => (
-                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} scheduled={!!(event.meetLink && scheduledMeetings.has(event.meetLink))} />
+                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} botStatus={event.meetLink ? (botStatusByUrl.get(event.meetLink) || null) : null} />
                     ))}
                   </div>
                 )}
