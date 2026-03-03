@@ -311,12 +311,13 @@ function ActiveBotCard({ bot, onLeave, leaving, showHost, meetingTime }: { bot: 
   const time = meetingTime
     ? formatEventTime(meetingTime)
     : new Date(bot.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
-  const isActive = !["done", "fatal", "call_ended"].includes(bot.status);
+  const isScheduled = bot.status === "ready";
+  const isActive = !["done", "fatal", "call_ended", "ready"].includes(bot.status);
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2 rounded-lg bg-blue-50 shrink-0">
+          <div className={`p-2 rounded-lg shrink-0 ${isScheduled ? "bg-blue-50" : "bg-blue-50"}`}>
             <Bot size={18} className="text-[#2055e4]" />
           </div>
           <div className="min-w-0">
