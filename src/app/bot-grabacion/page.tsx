@@ -109,6 +109,7 @@ const mockHostData: Record<string, { meetingsToday: Meeting[]; upcomingMeetings:
 
 function recallStatusToLabel(status: string): string {
   const map: Record<string, string> = {
+    ready: "Programado",
     joining_call: "Uniéndose…",
     in_waiting_room: "En sala de espera",
     in_call_not_recording: "En llamada",
@@ -123,6 +124,7 @@ function recallStatusToLabel(status: string): string {
 function recallStatusColor(status: string): { bg: string; text: string; dot: string; pulse?: boolean } {
   if (status === "in_call_recording") return { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500", pulse: true };
   if (status === "joining_call" || status === "in_waiting_room" || status === "in_call_not_recording") return { bg: "bg-yellow-100", text: "text-yellow-700", dot: "bg-yellow-500" };
+  if (status === "ready") return { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" };
   if (status === "done" || status === "call_ended") return { bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" };
   if (status === "fatal") return { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" };
   return { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" };
@@ -218,16 +220,18 @@ function CalendarMeetingCard({
   event,
   onSendBot,
   sendingBotId,
+  scheduled,
 }: {
   event: CalendarEvent;
   onSendBot: (event: CalendarEvent) => void;
   sendingBotId: string | null;
+  scheduled: boolean;
 }) {
   const hasEnded = new Date(event.end) < new Date();
   const isNow = new Date(event.start) <= new Date() && new Date(event.end) >= new Date();
 
   return (
-    <div className={`bg-white rounded-xl border p-4 transition-all ${isNow ? "border-green-300 shadow-md ring-1 ring-green-100" : "border-gray-200 hover:shadow-md"}`}>
+    <div className={`bg-white rounded-xl border p-4 transition-all ${isNow ? "border-green-300 shadow-md ring-1 ring-green-100" : scheduled ? "border-blue-200 ring-1 ring-blue-50" : "border-gray-200 hover:shadow-md"}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className={`p-2 rounded-lg shrink-0 ${isNow ? "bg-green-50" : "bg-blue-50"}`}>
@@ -255,7 +259,13 @@ function CalendarMeetingCard({
             Finalizado
           </span>
         )}
-        {!isNow && !hasEnded && (
+        {!isNow && !hasEnded && scheduled && (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
+            Bot programado
+          </span>
+        )}
+        {!isNow && !hasEnded && !scheduled && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
             <span className="h-2 w-2 rounded-full bg-yellow-500" />
             Pendiente
@@ -267,7 +277,7 @@ function CalendarMeetingCard({
           <Clock size={14} className="shrink-0" />
           <span>{formatEventTime(event.start)} - {formatEventTime(event.end)}</span>
         </div>
-        {event.meetLink && !hasEnded && (
+        {event.meetLink && !hasEnded && !scheduled && (
           <button
             onClick={() => onSendBot(event)}
             disabled={sendingBotId === event.id}
@@ -281,6 +291,12 @@ function CalendarMeetingCard({
             )}
             Enviar Bot
           </button>
+        )}
+        {scheduled && !hasEnded && (
+          <span className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600">
+            <CheckCircle2 size={12} />
+            Listo
+          </span>
         )}
       </div>
     </div>
@@ -498,6 +514,8 @@ export default function BotGrabacionPage() {
   const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [sendingBotId, setSendingBotId] = useState<string | null>(null);
+  const [scheduledMeetings, setScheduledMeetings] = useState<Set<string>>(new Set());
+  const [autoScheduleRan, setAutoScheduleRan] = useState(false);
 
   const selectedHost = hosts.find((h) => h.id === selectedHostId) ?? hosts[0];
   const isConnectedHost = selectedHost.connected;
@@ -508,10 +526,32 @@ export default function BotGrabacionPage() {
       const res = await fetch(`/api/recall/bot?host=${selectedHost.name}`);
       if (res.ok) {
         const data = await res.json();
-        setActiveBots(data.bots || []);
+        const bots: ActiveBot[] = data.bots || [];
+        setActiveBots(bots);
+        // Track which meeting URLs have bots (for "scheduled" badge)
+        setScheduledMeetings(new Set(bots.map((b) => b.meeting_url)));
       }
     } catch { /* silently fail */ }
   }, [selectedHost.name]);
+
+  // Auto-schedule bots for all hosts (runs once on page load)
+  const runAutoSchedule = useCallback(async () => {
+    if (autoScheduleRan) return;
+    setAutoScheduleRan(true);
+    try {
+      const res = await fetch("/api/recall/auto-schedule", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.scheduled > 0) {
+          console.log(`[Auto-Schedule] ${data.scheduled} bots programados`, data.details);
+          // Refresh bots to show new scheduled ones
+          setTimeout(fetchActiveBots, 1000);
+        }
+      }
+    } catch {
+      // Silently fail — manual sending still works
+    }
+  }, [autoScheduleRan, fetchActiveBots]);
 
   // Fetch calendar events for connected hosts
   const fetchCalendar = useCallback(async () => {
@@ -544,9 +584,10 @@ export default function BotGrabacionPage() {
   useEffect(() => {
     fetchActiveBots();
     fetchCalendar();
+    runAutoSchedule();
     const interval = setInterval(fetchActiveBots, 10000);
     return () => clearInterval(interval);
-  }, [fetchActiveBots, fetchCalendar]);
+  }, [fetchActiveBots, fetchCalendar, runAutoSchedule]);
 
   const handleModalClose = () => {
     setModalOpen(false);
@@ -595,7 +636,8 @@ export default function BotGrabacionPage() {
     }
   };
 
-  const liveActiveBots = activeBots.filter((b) => !["done", "fatal", "call_ended"].includes(b.status));
+  const scheduledBots = activeBots.filter((b) => b.status === "ready");
+  const liveActiveBots = activeBots.filter((b) => !["done", "fatal", "call_ended", "ready"].includes(b.status));
   const completedBots = activeBots.filter((b) => ["done", "call_ended"].includes(b.status));
 
   // Mock data for non-connected hosts
@@ -656,6 +698,20 @@ export default function BotGrabacionPage() {
         </div>
       )}
 
+      {/* Scheduled Bots */}
+      {scheduledBots.length > 0 && (
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={18} className="text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Bots Programados</h2>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">{scheduledBots.length}</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {scheduledBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} />)}
+          </div>
+        </div>
+      )}
+
       {/* Active Bots */}
       {liveActiveBots.length > 0 && (
         <div className="mb-6 md:mb-8">
@@ -707,7 +763,7 @@ export default function BotGrabacionPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {todayEvents.map((event) => (
-                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} />
+                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} scheduled={!!(event.meetLink && scheduledMeetings.has(event.meetLink))} />
                     ))}
                   </div>
                 )}
@@ -727,7 +783,7 @@ export default function BotGrabacionPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {upcomingEvents.map((event) => (
-                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} />
+                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} scheduled={!!(event.meetLink && scheduledMeetings.has(event.meetLink))} />
                     ))}
                   </div>
                 )}
