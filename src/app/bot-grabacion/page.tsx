@@ -305,9 +305,12 @@ function CalendarMeetingCard({
   );
 }
 
-function ActiveBotCard({ bot, onLeave, leaving, showHost }: { bot: ActiveBot; onLeave: (recallBotId: string) => void; leaving: boolean; showHost?: boolean }) {
+function ActiveBotCard({ bot, onLeave, leaving, showHost, meetingTime }: { bot: ActiveBot; onLeave: (recallBotId: string) => void; leaving: boolean; showHost?: boolean; meetingTime?: string }) {
   const [confirming, setConfirming] = useState(false);
-  const time = new Date(bot.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  // Show the actual meeting time if available, otherwise fallback to created_at
+  const time = meetingTime
+    ? formatEventTime(meetingTime)
+    : new Date(bot.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
   const isActive = !["done", "fatal", "call_ended"].includes(bot.status);
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
@@ -688,6 +691,14 @@ export default function BotGrabacionPage() {
   const liveActiveBots = activeBots.filter((b) => !["done", "fatal", "call_ended", "ready"].includes(b.status));
   const completedBots = activeBots.filter((b) => ["done", "call_ended"].includes(b.status));
 
+  // Map meeting_url → event start time (from calendar events)
+  const meetingTimeMap = new Map<string, string>();
+  for (const event of [...todayEvents, ...upcomingEvents]) {
+    if (event.meetLink) {
+      meetingTimeMap.set(event.meetLink, event.start);
+    }
+  }
+
   // Mock data for non-connected hosts
   const mockData = !isConnectedHost ? mockHostData[selectedHostId] : null;
 
@@ -756,7 +767,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">{scheduledBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {scheduledBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} />)}
+            {scheduledBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} meetingTime={meetingTimeMap.get(bot.meeting_url)} />)}
           </div>
         </div>
       )}
@@ -770,7 +781,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">{liveActiveBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} />)}
+            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} meetingTime={meetingTimeMap.get(bot.meeting_url)} />)}
           </div>
         </div>
       )}
@@ -784,7 +795,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{completedBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {completedBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} />)}
+            {completedBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} meetingTime={meetingTimeMap.get(bot.meeting_url)} />)}
           </div>
         </div>
       )}
