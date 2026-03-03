@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
   }
 
   // For active bots, refresh status directly from Recall.ai
-  const activeStatuses = ["joining_call", "in_waiting_room", "in_call_not_recording", "in_call_recording"];
+  const activeStatuses = ["ready", "joining_call", "in_waiting_room", "in_call_not_recording", "in_call_recording"];
   const bots = await Promise.all(
     (data || []).map(async (bot) => {
       if (bot.recall_bot_id && activeStatuses.includes(bot.status)) {
