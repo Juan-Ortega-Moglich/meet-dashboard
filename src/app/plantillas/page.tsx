@@ -15,7 +15,7 @@ import {
   Check,
   Pencil,
 } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // --- Types ---
 
@@ -30,9 +30,9 @@ interface SavedTemplate {
   createdAt: string;
 }
 
-// --- Example data ---
+// --- Example data: Minutas ---
 
-const exampleData = {
+const minutaData = {
   meetingName: "Revisión de Estrategia Comercial Q2 2026",
   date: "2 de Marzo, 2026 — 10:00 AM",
   attendees: "Andrés López, María González, Pablo Herrera, Sofía Ramírez, Rafael Torres (ausente)",
@@ -65,6 +65,36 @@ const exampleData = {
   ],
   conclusion:
     "El equipo tiene claridad sobre las prioridades de Q2 y los recursos necesarios. Se espera un incremento del 15% en el pipeline para finales de marzo. Próxima reunión de seguimiento: 15 de marzo, 10:00 AM.",
+};
+
+// --- Example data: Perfil de Cliente ---
+
+const perfilData = {
+  nombre: "Carlos Mendoza Rivera",
+  fechaReunion: "2 de Marzo, 2026",
+  kam: "María González",
+  cliente: {
+    puesto: "Director de Operaciones",
+    correo: "carlos.mendoza@acmecorp.com",
+    telefono: "+52 55 1234 5678",
+    linkedin: "linkedin.com/in/carlosmendoza",
+  },
+  empresa: {
+    fichaTecnica: "Acme Corp — Fundada en 2010, 250 empleados",
+    sitioWeb: "www.acmecorp.com",
+    ubicacion: "Ciudad de México, CDMX",
+    giroSector: "Tecnología / Logística",
+  },
+  puntosDeValor: {
+    descripcion:
+      "Empresa líder en soluciones logísticas con presencia en 5 países de Latinoamérica. Buscan optimizar sus procesos de distribución y reducir costos operativos en un 20% para el cierre de 2026.",
+    posibleInteres:
+      "Automatización de rutas de entrega, integración con su ERP actual (SAP), dashboard de métricas en tiempo real y reportes ejecutivos para el board directivo.",
+    trayectoria:
+      "15 años de experiencia en el sector. Previamente trabajaron con soluciones in-house que quedaron obsoletas. En 2025 iniciaron proceso de transformación digital con foco en datos y analytics.",
+    productosServicios:
+      "Distribución last-mile, almacenaje, fulfillment para e-commerce, transporte refrigerado y consultoría logística.",
+  },
 };
 
 // --- Color presets ---
@@ -104,7 +134,7 @@ function fileToDataUrl(file: File): Promise<string> {
 
 // --- Pie chart SVG ---
 
-function PieChart({ data, primary, secondary }: { data: typeof exampleData.participation; primary: string; secondary: string }) {
+function PieChart({ data, primary, secondary }: { data: typeof minutaData.participation; primary: string; secondary: string }) {
   const pieColors = [primary, secondary, `${primary}aa`, `${secondary}aa`, "#cbd5e1"];
   const total = data.reduce((s, d) => s + d.pct, 0);
   let cumAngle = -90;
@@ -150,6 +180,37 @@ function Card({ title, color, children }: { title: string; color: string; childr
   );
 }
 
+// --- Section badge (for perfil) ---
+
+function SectionBadge({ label, color }: { label: string; color: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "center", margin: "4px 0" }}>
+      <span style={{
+        display: "inline-block",
+        padding: "6px 24px",
+        borderRadius: "20px",
+        fontSize: "13px",
+        fontWeight: 700,
+        color: "#fff",
+        background: `linear-gradient(135deg, ${color}, ${color}cc)`,
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// --- Field row for perfil ---
+
+function FieldRow({ label, value, labelStyle, textStyle }: { label: string; value: string; labelStyle: React.CSSProperties; textStyle: React.CSSProperties }) {
+  return (
+    <div style={{ marginBottom: "10px" }}>
+      <p style={labelStyle}>{label}</p>
+      <p style={textStyle}>{value}</p>
+    </div>
+  );
+}
+
 // --- Template width ---
 const TEMPLATE_WIDTH = 794;
 
@@ -165,7 +226,8 @@ export default function PlantillasPage() {
   const [customSecondary, setCustomSecondary] = useState(colorPresets[0].secondary);
   const [downloading, setDownloading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const templateRef = useRef<HTMLDivElement>(null);
+  const minutaRef = useRef<HTMLDivElement>(null);
+  const perfilRef = useRef<HTMLDivElement>(null);
 
   // Saved templates
   const [saved, setSaved] = useState<SavedTemplate[]>([]);
@@ -178,10 +240,7 @@ export default function PlantillasPage() {
   const [editName, setEditName] = useState("");
   const [justUpdated, setJustUpdated] = useState(false);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    setSaved(loadTemplates());
-  }, []);
+  useEffect(() => { setSaved(loadTemplates()); }, []);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -192,124 +251,89 @@ export default function PlantillasPage() {
   };
 
   const handlePresetSelect = (preset: typeof colorPresets[0]) => {
-    setColors(preset);
-    setCustomPrimary(preset.primary);
-    setCustomSecondary(preset.secondary);
-    setShowColorPicker(false);
-    setActiveTemplateId(null);
+    setColors(preset); setCustomPrimary(preset.primary); setCustomSecondary(preset.secondary);
+    setShowColorPicker(false); setActiveTemplateId(null);
   };
 
   const applyCustomColors = () => {
     setColors({ name: "Personalizado", primary: customPrimary, secondary: customSecondary });
-    setShowColorPicker(false);
-    setActiveTemplateId(null);
+    setShowColorPicker(false); setActiveTemplateId(null);
   };
 
   const handleSaveTemplate = () => {
     if (!saveName.trim()) return;
-    const newTemplate: SavedTemplate = {
-      id: crypto.randomUUID(),
-      name: saveName.trim(),
-      primary: colors.primary,
-      secondary: colors.secondary,
-      logoDataUrl,
-      createdAt: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }),
+    const t: SavedTemplate = {
+      id: crypto.randomUUID(), name: saveName.trim(), primary: colors.primary, secondary: colors.secondary,
+      logoDataUrl, createdAt: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }),
     };
-    const updated = [...saved, newTemplate];
-    setSaved(updated);
-    saveTemplates(updated);
-    setActiveTemplateId(newTemplate.id);
-    setSaveName("");
-    setShowSaveInput(false);
-    setJustSaved(true);
+    const updated = [...saved, t];
+    setSaved(updated); saveTemplates(updated); setActiveTemplateId(t.id);
+    setSaveName(""); setShowSaveInput(false); setJustSaved(true);
     setTimeout(() => setJustSaved(false), 2000);
   };
 
   const handleLoadTemplate = (t: SavedTemplate) => {
     setColors({ name: t.name, primary: t.primary, secondary: t.secondary });
-    setCustomPrimary(t.primary);
-    setCustomSecondary(t.secondary);
-    if (t.logoDataUrl) {
-      setLogoUrl(t.logoDataUrl);
-      setLogoDataUrl(t.logoDataUrl);
-    } else {
-      setLogoUrl(null);
-      setLogoDataUrl(null);
-    }
+    setCustomPrimary(t.primary); setCustomSecondary(t.secondary);
+    if (t.logoDataUrl) { setLogoUrl(t.logoDataUrl); setLogoDataUrl(t.logoDataUrl); }
+    else { setLogoUrl(null); setLogoDataUrl(null); }
     setActiveTemplateId(t.id);
   };
 
   const handleDeleteTemplate = (id: string) => {
     const updated = saved.filter((t) => t.id !== id);
-    setSaved(updated);
-    saveTemplates(updated);
+    setSaved(updated); saveTemplates(updated);
     if (activeTemplateId === id) setActiveTemplateId(null);
     setDeleteConfirm(null);
   };
 
-  const handleStartEdit = (t: SavedTemplate) => {
-    setEditingId(t.id);
-    setEditName(t.name);
-  };
+  const handleStartEdit = (t: SavedTemplate) => { setEditingId(t.id); setEditName(t.name); };
 
   const handleUpdateTemplate = () => {
     if (!editingId) return;
     const updated = saved.map((t) =>
-      t.id === editingId
-        ? { ...t, name: editName.trim() || t.name, primary: colors.primary, secondary: colors.secondary, logoDataUrl }
-        : t
+      t.id === editingId ? { ...t, name: editName.trim() || t.name, primary: colors.primary, secondary: colors.secondary, logoDataUrl } : t
     );
-    setSaved(updated);
-    saveTemplates(updated);
-    setEditingId(null);
-    setEditName("");
-    setJustUpdated(true);
-    setTimeout(() => setJustUpdated(false), 2000);
+    setSaved(updated); saveTemplates(updated); setEditingId(null); setEditName("");
+    setJustUpdated(true); setTimeout(() => setJustUpdated(false), 2000);
   };
 
   const handleDownloadPDF = async () => {
-    if (!templateRef.current) return;
+    const ref = activeTab === "minutas" ? minutaRef.current : perfilRef.current;
+    if (!ref) return;
     setDownloading(true);
     try {
       const html2canvas = (await import("html2canvas-pro")).default;
       const { jsPDF } = await import("jspdf");
-
-      const canvas = await html2canvas(templateRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#eef1f5",
-        width: TEMPLATE_WIDTH,
-        windowWidth: TEMPLATE_WIDTH,
-      });
-
+      const canvas = await html2canvas(ref, { scale: 2, useCORS: true, backgroundColor: "#eef1f5", width: TEMPLATE_WIDTH, windowWidth: TEMPLATE_WIDTH });
       const imgData = canvas.toDataURL("image/png");
-      const pdfWidth = 210;
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageH = 297;
+      const pdfW = 210, pdfH = (canvas.height * pdfW) / canvas.width, pageH = 297;
       const pdf = new jsPDF("p", "mm", "a4");
-      let y = 0, left = pdfHeight;
-
-      while (left > 0) {
-        if (y > 0) pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, -y, pdfWidth, pdfHeight);
-        y += pageH;
-        left -= pageH;
-      }
-
-      const fileName = activeTemplateId
-        ? `${saved.find((t) => t.id === activeTemplateId)?.name || "minuta"}.pdf`
-        : "minuta-plantilla.pdf";
-      pdf.save(fileName);
-    } catch (err) {
-      console.error("Error generating PDF:", err);
-    } finally {
-      setDownloading(false);
-    }
+      let y = 0, left = pdfH;
+      while (left > 0) { if (y > 0) pdf.addPage(); pdf.addImage(imgData, "PNG", 0, -y, pdfW, pdfH); y += pageH; left -= pageH; }
+      const base = activeTemplateId ? saved.find((t) => t.id === activeTemplateId)?.name || activeTab : activeTab;
+      pdf.save(`${base}-plantilla.pdf`);
+    } catch (err) { console.error("Error generating PDF:", err); }
+    finally { setDownloading(false); }
   };
 
   const label: React.CSSProperties = { fontSize: "11px", fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "2px" };
   const text: React.CSSProperties = { fontSize: "13px", color: "#1f2937", lineHeight: 1.5 };
   const listItem: React.CSSProperties = { fontSize: "13px", color: "#374151", lineHeight: 1.6 };
+
+  // --- Logo header (shared between templates) ---
+  const LogoHeader = () => (
+    <div style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, padding: "24px 20px", display: "flex", justifyContent: "center", alignItems: "center", borderRadius: "16px 16px 0 0" }}>
+      {logoUrl ? (
+        <img src={logoUrl} alt="Logo" style={{ height: "56px", width: "auto", objectFit: "contain" }} />
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", opacity: 0.6 }}>
+          <LayoutTemplate size={28} color="#ffffff" />
+          <span style={{ fontSize: "18px", fontWeight: 700, color: "#ffffff" }}>TU LOGO AQUÍ</span>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div>
@@ -325,16 +349,10 @@ export default function PlantillasPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
-          <button
-            onClick={() => setActiveTab("minutas")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "minutas" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
+          <button onClick={() => setActiveTab("minutas")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "minutas" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
             <FileText size={16} /> Minutas
           </button>
-          <button
-            onClick={() => setActiveTab("perfil")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "perfil" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-          >
+          <button onClick={() => setActiveTab("perfil")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "perfil" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
             <UserCircle size={16} /> Perfil de Cliente
           </button>
         </div>
@@ -356,64 +374,38 @@ export default function PlantillasPage() {
           <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
           <Palette size={16} className="text-gray-400" />
           {colorPresets.map((preset) => (
-            <button
-              key={preset.name}
-              onClick={() => handlePresetSelect(preset)}
-              title={preset.name}
+            <button key={preset.name} onClick={() => handlePresetSelect(preset)} title={preset.name}
               className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${colors.primary === preset.primary && !activeTemplateId ? "border-gray-900 scale-110 shadow-md" : "border-white shadow-sm"}`}
-              style={{ background: `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})` }}
-            />
+              style={{ background: `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})` }} />
           ))}
           <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
-          <button
-            onClick={() => setShowColorPicker(!showColorPicker)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${showColorPicker ? "border-gray-900 bg-gray-50 text-gray-900" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}
-          >
+          <button onClick={() => setShowColorPicker(!showColorPicker)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${showColorPicker ? "border-gray-900 bg-gray-50 text-gray-900" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
             <Palette size={16} /> Personalizado
           </button>
           <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
-
-          {/* Save button */}
           {!showSaveInput ? (
-            <button
-              onClick={() => setShowSaveInput(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
+            <button onClick={() => setShowSaveInput(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
               {justSaved ? <Check size={16} className="text-green-500" /> : <Save size={16} />}
               {justSaved ? "Guardada" : "Guardar"}
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
+              <input type="text" value={saveName} onChange={(e) => setSaveName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSaveTemplate(); if (e.key === "Escape") setShowSaveInput(false); }}
-                placeholder="Nombre de la plantilla..."
-                className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 w-52"
-                autoFocus
-              />
-              <button
-                onClick={handleSaveTemplate}
-                disabled={!saveName.trim()}
+                placeholder="Nombre de la plantilla..." className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 w-52" autoFocus />
+              <button onClick={handleSaveTemplate} disabled={!saveName.trim()}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
-                style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-              >
+                style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}>
                 <Save size={14} /> Guardar
               </button>
-              <button onClick={() => { setShowSaveInput(false); setSaveName(""); }} className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors">
-                <X size={16} />
-              </button>
+              <button onClick={() => { setShowSaveInput(false); setSaveName(""); }} className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"><X size={16} /></button>
             </div>
           )}
-
           <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
-          <button
-            onClick={handleDownloadPDF}
-            disabled={downloading}
+          <button onClick={handleDownloadPDF} disabled={downloading}
             className="flex items-center gap-2 px-5 py-2 text-white text-sm font-medium rounded-xl transition-all hover:opacity-90 disabled:opacity-60"
-            style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-          >
+            style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}>
             {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             {downloading ? "Generando…" : "Descargar PDF"}
           </button>
@@ -434,9 +426,8 @@ export default function PlantillasPage() {
                 <input type="text" value={customSecondary} onChange={(e) => setCustomSecondary(e.target.value)} className="w-24 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 font-mono" />
               </div>
             </div>
-            <button onClick={applyCustomColors} className="px-5 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90" style={{ background: `linear-gradient(135deg, ${customPrimary}, ${customSecondary})` }}>
-              Aplicar
-            </button>
+            <button onClick={applyCustomColors} className="px-5 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90"
+              style={{ background: `linear-gradient(135deg, ${customPrimary}, ${customSecondary})` }}>Aplicar</button>
           </div>
         )}
       </div>
@@ -449,89 +440,38 @@ export default function PlantillasPage() {
             {saved.map((t) => {
               const isActive = activeTemplateId === t.id;
               const isEditing = editingId === t.id;
-
               return (
-                <div
-                  key={t.id}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${
-                    isActive ? "border-gray-900 shadow-md bg-white" : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
-                  onClick={() => { if (!isEditing) handleLoadTemplate(t); }}
-                >
-                  {/* Color preview */}
+                <div key={t.id}
+                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${isActive ? "border-gray-900 shadow-md bg-white" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                  onClick={() => { if (!isEditing) handleLoadTemplate(t); }}>
                   <div className="w-8 h-8 rounded-lg shrink-0" style={{ background: `linear-gradient(135deg, ${t.primary}, ${t.secondary})` }} />
-
-                  {/* Name — editable or static */}
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                    <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") handleUpdateTemplate(); if (e.key === "Escape") setEditingId(null); }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-2 py-1 rounded-lg border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 w-40"
-                      autoFocus
-                    />
+                      onClick={(e) => e.stopPropagation()} className="px-2 py-1 rounded-lg border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 w-40" autoFocus />
                   ) : (
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">{t.name}</p>
                       <p className="text-[11px] text-gray-400">{t.createdAt}</p>
                     </div>
                   )}
-
-                  {/* Logo indicator */}
-                  {t.logoDataUrl && !isEditing && (
-                    <img src={t.logoDataUrl} alt="" className="h-6 w-auto object-contain opacity-50 ml-1" />
-                  )}
-
-                  {/* Action buttons */}
+                  {t.logoDataUrl && !isEditing && <img src={t.logoDataUrl} alt="" className="h-6 w-auto object-contain opacity-50 ml-1" />}
                   {isEditing ? (
                     <div className="flex items-center gap-1 ml-1" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={handleUpdateTemplate}
-                        className="p-1.5 rounded-lg text-white transition-colors"
-                        style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}
-                        title="Guardar cambios"
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                        title="Cancelar"
-                      >
-                        <X size={14} />
-                      </button>
+                      <button onClick={handleUpdateTemplate} className="p-1.5 rounded-lg text-white transition-colors" style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}><Check size={14} /></button>
+                      <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"><X size={14} /></button>
                     </div>
                   ) : isActive ? (
                     <div className="flex items-center gap-1 ml-1" onClick={(e) => e.stopPropagation()}>
                       {justUpdated ? (
-                        <span className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600">
-                          <Check size={14} /> Guardada
-                        </span>
+                        <span className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600"><Check size={14} /> Guardada</span>
                       ) : (
-                        <button
-                          onClick={() => handleStartEdit(t)}
-                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-                          title="Editar plantilla"
-                        >
-                          <Pencil size={13} /> Editar
-                        </button>
+                        <button onClick={() => handleStartEdit(t)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"><Pencil size={13} /> Editar</button>
                       )}
-                      <button
-                        onClick={() => setDeleteConfirm(t.id)}
-                        className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
                     </div>
                   ) : (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteConfirm(t.id); }}
-                      className="ml-2 p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(t.id); }} className="ml-2 p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={14} /></button>
                   )}
                 </div>
               );
@@ -562,60 +502,44 @@ export default function PlantillasPage() {
       {activeTab === "minutas" && (
         <div className="overflow-x-auto pb-4">
           <div className="mx-auto" style={{ width: `${TEMPLATE_WIDTH}px` }}>
-            <div
-              ref={templateRef}
-              style={{ width: `${TEMPLATE_WIDTH}px`, backgroundColor: "#eef1f5", borderRadius: "16px", overflow: "hidden" }}
-            >
-              <div style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`, padding: "24px 20px", display: "flex", justifyContent: "center", alignItems: "center", borderRadius: "16px 16px 0 0" }}>
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" style={{ height: "56px", width: "auto", objectFit: "contain" }} />
-                ) : (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", opacity: 0.6 }}>
-                    <LayoutTemplate size={28} color="#ffffff" />
-                    <span style={{ fontSize: "18px", fontWeight: 700, color: "#ffffff" }}>TU LOGO AQUÍ</span>
-                  </div>
-                )}
-              </div>
-
+            <div ref={minutaRef} style={{ width: `${TEMPLATE_WIDTH}px`, backgroundColor: "#eef1f5", borderRadius: "16px", overflow: "hidden" }}>
+              <LogoHeader />
               <div style={{ padding: "20px 20px 32px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <Card title="Minuta de Reunión" color={colors.primary}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                      <div><p style={label}>Reunión</p><p style={text}>{exampleData.meetingName}</p></div>
-                      <div><p style={label}>Fecha</p><p style={text}>{exampleData.date}</p></div>
-                      <div><p style={label}>Asistentes</p><p style={text}>{exampleData.attendees}</p></div>
+                      <div><p style={label}>Reunión</p><p style={text}>{minutaData.meetingName}</p></div>
+                      <div><p style={label}>Fecha</p><p style={text}>{minutaData.date}</p></div>
+                      <div><p style={label}>Asistentes</p><p style={text}>{minutaData.attendees}</p></div>
                     </div>
                   </Card>
                   <Card title="Participación" color={colors.primary}>
-                    <PieChart data={exampleData.participation} primary={colors.primary} secondary={colors.secondary} />
+                    <PieChart data={minutaData.participation} primary={colors.primary} secondary={colors.secondary} />
                   </Card>
                 </div>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <Card title="Orden del día" color={colors.primary}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {exampleData.agenda.map((item, i) => (<p key={i} style={listItem}>{i + 1}. {item}</p>))}
+                      {minutaData.agenda.map((item, i) => (<p key={i} style={listItem}>{i + 1}. {item}</p>))}
                     </div>
                   </Card>
                   <Card title="Pendientes" color={colors.primary}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {exampleData.pending.map((item, i) => (<p key={i} style={listItem}>— {item}</p>))}
+                      {minutaData.pending.map((item, i) => (<p key={i} style={listItem}>— {item}</p>))}
                     </div>
                   </Card>
                 </div>
-
                 <Card title="Resumen" color={colors.primary}>
-                  <p style={{ ...text, lineHeight: 1.7 }}>{exampleData.summary}</p>
+                  <p style={{ ...text, lineHeight: 1.7 }}>{minutaData.summary}</p>
                 </Card>
-
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                   <Card title="Próximos pasos" color={colors.primary}>
                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {exampleData.commitments.map((item, i) => (<p key={i} style={listItem}>{i + 1}. {item}</p>))}
+                      {minutaData.commitments.map((item, i) => (<p key={i} style={listItem}>{i + 1}. {item}</p>))}
                     </div>
                   </Card>
                   <Card title="Conclusión" color={colors.primary}>
-                    <p style={{ ...text, lineHeight: 1.7 }}>{exampleData.conclusion}</p>
+                    <p style={{ ...text, lineHeight: 1.7 }}>{minutaData.conclusion}</p>
                   </Card>
                 </div>
               </div>
@@ -624,14 +548,98 @@ export default function PlantillasPage() {
         </div>
       )}
 
-      {/* ===== PERFIL TEMPLATE (placeholder) ===== */}
+      {/* ===== PERFIL DE CLIENTE TEMPLATE ===== */}
       {activeTab === "perfil" && (
-        <div className="rounded-2xl border-2 border-dashed border-gray-300 p-16 text-center" style={{ backgroundColor: "#eef1f5" }}>
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white mb-4">
-            <UserCircle size={32} className="text-gray-300" />
+        <div className="overflow-x-auto pb-4">
+          <div className="mx-auto" style={{ width: `${TEMPLATE_WIDTH}px` }}>
+            <div ref={perfilRef} style={{ width: `${TEMPLATE_WIDTH}px`, backgroundColor: "#eef1f5", borderRadius: "16px", overflow: "hidden" }}>
+              <LogoHeader />
+              <div style={{ padding: "20px 20px 32px 20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+
+                {/* Datos generales */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+                  <div style={{ backgroundColor: "#fff", borderRadius: "12px", overflow: "hidden", display: "flex", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <div style={{ width: "6px", flexShrink: 0, backgroundColor: colors.primary }} />
+                    <div style={{ padding: "20px", flex: 1 }}>
+                      <p style={label}>Nombre</p>
+                      <p style={{ fontSize: "15px", fontWeight: 700, color: colors.primary, lineHeight: 1.4 }}>{perfilData.nombre}</p>
+                    </div>
+                  </div>
+                  <div style={{ backgroundColor: "#fff", borderRadius: "12px", overflow: "hidden", display: "flex", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <div style={{ width: "6px", flexShrink: 0, backgroundColor: colors.primary }} />
+                    <div style={{ padding: "20px", flex: 1 }}>
+                      <p style={label}>Fecha de reunión</p>
+                      <p style={{ fontSize: "15px", fontWeight: 700, color: colors.primary, lineHeight: 1.4 }}>{perfilData.fechaReunion}</p>
+                    </div>
+                  </div>
+                  <div style={{ backgroundColor: "#fff", borderRadius: "12px", overflow: "hidden", display: "flex", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <div style={{ width: "6px", flexShrink: 0, backgroundColor: colors.primary }} />
+                    <div style={{ padding: "20px", flex: 1 }}>
+                      <p style={label}>KAM</p>
+                      <p style={{ fontSize: "15px", fontWeight: 700, color: colors.primary, lineHeight: 1.4 }}>{perfilData.kam}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info cliente + Info empresa */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <SectionBadge label="Información del cliente" color={colors.primary} />
+                    <Card title="Puesto" color={colors.primary}>
+                      <p style={text}>{perfilData.cliente.puesto}</p>
+                    </Card>
+                    <Card title="Correo" color={colors.primary}>
+                      <p style={text}>{perfilData.cliente.correo}</p>
+                    </Card>
+                    <Card title="Teléfono" color={colors.primary}>
+                      <p style={text}>{perfilData.cliente.telefono}</p>
+                    </Card>
+                    <Card title="LinkedIn" color={colors.primary}>
+                      <p style={text}>{perfilData.cliente.linkedin}</p>
+                    </Card>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <SectionBadge label="Información de la empresa" color={colors.primary} />
+                    <Card title="Ficha Técnica" color={colors.primary}>
+                      <p style={text}>{perfilData.empresa.fichaTecnica}</p>
+                    </Card>
+                    <Card title="Sitio Web" color={colors.primary}>
+                      <p style={text}>{perfilData.empresa.sitioWeb}</p>
+                    </Card>
+                    <Card title="Ubicación" color={colors.primary}>
+                      <p style={text}>{perfilData.empresa.ubicacion}</p>
+                    </Card>
+                    <Card title="Giro / Sector" color={colors.primary}>
+                      <p style={text}>{perfilData.empresa.giroSector}</p>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Puntos de valor */}
+                <SectionBadge label="Puntos de valor" color={colors.primary} />
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <Card title="Descripción" color={colors.primary}>
+                    <p style={{ ...text, lineHeight: 1.7 }}>{perfilData.puntosDeValor.descripcion}</p>
+                  </Card>
+                  <Card title="Posible interés" color={colors.primary}>
+                    <p style={{ ...text, lineHeight: 1.7 }}>{perfilData.puntosDeValor.posibleInteres}</p>
+                  </Card>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <Card title="Trayectoria" color={colors.primary}>
+                    <p style={{ ...text, lineHeight: 1.7 }}>{perfilData.puntosDeValor.trayectoria}</p>
+                  </Card>
+                  <Card title="Productos / Servicios" color={colors.primary}>
+                    <p style={{ ...text, lineHeight: 1.7 }}>{perfilData.puntosDeValor.productosServicios}</p>
+                  </Card>
+                </div>
+
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-bold text-gray-400 mb-2">Perfil de Cliente</h3>
-          <p className="text-sm text-gray-400">Esta plantilla se configurará próximamente</p>
         </div>
       )}
     </div>
