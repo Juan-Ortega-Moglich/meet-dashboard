@@ -116,7 +116,9 @@ function recallStatusToLabel(status: string): string {
     in_call_not_recording: "En llamada",
     in_call_recording: "Grabando",
     call_ended: "Llamada terminada",
+    recording_done: "Finalizado",
     done: "Finalizado",
+    media_expired: "Expirado",
     fatal: "Error",
   };
   return map[status] || status;
@@ -126,8 +128,8 @@ function recallStatusColor(status: string): { bg: string; text: string; dot: str
   if (status === "in_call_recording") return { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500", pulse: true };
   if (status === "joining_call" || status === "in_waiting_room" || status === "in_call_not_recording") return { bg: "bg-yellow-100", text: "text-yellow-700", dot: "bg-yellow-500" };
   if (status === "ready") return { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" };
-  if (status === "done" || status === "call_ended") return { bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" };
-  if (status === "fatal") return { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" };
+  if (status === "done" || status === "call_ended" || status === "recording_done") return { bg: "bg-gray-100", text: "text-gray-500", dot: "bg-gray-400" };
+  if (status === "fatal" || status === "media_expired") return { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" };
   return { bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" };
 }
 
@@ -357,7 +359,7 @@ function ActiveBotCard({ bot, onLeave, leaving, showHost, meetingTime }: { bot: 
     ? formatEventTime(meetingTime)
     : new Date(bot.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
   const isScheduled = bot.status === "ready";
-  const isActive = !["done", "fatal", "call_ended", "ready"].includes(bot.status);
+  const isActive = !["done", "fatal", "call_ended", "ready", "media_expired", "recording_done"].includes(bot.status);
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -733,9 +735,10 @@ export default function BotGrabacionPage() {
     }
   };
 
+  const endedStatuses = ["done", "fatal", "call_ended", "media_expired", "recording_done"];
   const scheduledBots = activeBots.filter((b) => b.status === "ready");
-  const liveActiveBots = activeBots.filter((b) => !["done", "fatal", "call_ended", "ready"].includes(b.status));
-  const completedBots = activeBots.filter((b) => ["done", "call_ended"].includes(b.status));
+  const liveActiveBots = activeBots.filter((b) => !["ready", ...endedStatuses].includes(b.status));
+  const completedBots = activeBots.filter((b) => endedStatuses.includes(b.status));
 
   // Map meeting_url → event start time (from calendar events)
   const meetingTimeMap = new Map<string, string>();
