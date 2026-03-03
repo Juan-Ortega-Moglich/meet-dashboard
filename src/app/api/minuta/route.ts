@@ -34,8 +34,8 @@ Debes devolver ÚNICAMENTE un JSON válido (sin markdown, sin backticks, sin tex
   ],
   "ordenDelDia": ["punto 1", "punto 2", "punto 3", "punto 4", "punto 5"],
   "pendientes": ["pendiente 1", "pendiente 2", "pendiente 3", "pendiente 4", "pendiente 5"],
-  "resumen": "Resumen ejecutivo de exactamente 100 palabras",
-  "conclusion": "Conclusión de exactamente 70 palabras"
+  "resumen": "Resumen ejecutivo de exactamente 170 palabras",
+  "conclusion": "Conclusión de exactamente 120 palabras"
 }
 
 REGLAS ESTRICTAS:
@@ -43,8 +43,8 @@ REGLAS ESTRICTAS:
 - "participacion" es un ARRAY de objetos con "name" (nombre corto) y "pct" (porcentaje entero). Los porcentajes deben sumar 100. Calcula el porcentaje basándote en cuánto habló cada participante en la transcripción.
 - "ordenDelDia" es un ARRAY de exactamente 5 strings: los 5 puntos clave de lo que trató la reunión.
 - "pendientes" es un ARRAY de exactamente 5 strings: las 5 tareas o temas pendientes que surgieron. Incluye responsable y fecha si se mencionaron.
-- "resumen" debe tener EXACTAMENTE 100 palabras. Ni más ni menos.
-- "conclusion" debe tener EXACTAMENTE 70 palabras. Ni más ni menos.
+- "resumen" debe tener EXACTAMENTE 170 palabras. Ni más ni menos.
+- "conclusion" debe tener EXACTAMENTE 120 palabras. Ni más ni menos.
 - Extrae los nombres de los participantes de la transcripción
 - Todo en español, tono profesional y ejecutivo`;
 
