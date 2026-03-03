@@ -58,7 +58,7 @@ export async function createBot(params: CreateBotParams) {
         },
         everyone_left_timeout: {
           timeout: 2,
-          activate_after: 0,
+          activate_after: 1,
         },
         noone_joined_timeout: 300,
         waiting_room_timeout: 300,
