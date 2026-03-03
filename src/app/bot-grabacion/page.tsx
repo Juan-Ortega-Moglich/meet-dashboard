@@ -330,7 +330,7 @@ function CalendarMeetingCard({
           <Clock size={14} className="shrink-0" />
           <span>{formatEventTime(event.start)} - {formatEventTime(event.end)}</span>
         </div>
-        {event.meetLink && !hasEnded && !hasBot && (
+        {event.meetLink && !hasEnded && !isBotInCall && !isBotDone && (
           <button
             onClick={() => onSendBot(event)}
             disabled={sendingBotId === event.id}
