@@ -222,11 +222,13 @@ function MinutaModal({
   template,
   host,
   onClose,
+  onUpdate,
 }: {
   minuta: MinutaData;
   template: SavedTemplate;
   host: string;
   onClose: () => void;
+  onUpdate: (data: MinutaData) => void;
 }) {
   const templateRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
@@ -313,8 +315,13 @@ function MinutaModal({
     }
   };
 
+  const handleClose = () => {
+    onUpdate(data);
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={handleClose}>
       <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-[900px] max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -370,7 +377,7 @@ function MinutaModal({
                 {uploading ? "Guardando..." : "Guardar en Drive"}
               </button>
             )}
-            <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <button onClick={handleClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -613,6 +620,7 @@ function RecordingCard({
   const [minutaError, setMinutaError] = useState<string | null>(null);
   const [showTemplateSelect, setShowTemplateSelect] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<SavedTemplate | null>(null);
+  const [showMinutaModal, setShowMinutaModal] = useState(false);
 
   const handleGenerateMinuta = async (template: SavedTemplate) => {
     setShowTemplateSelect(false);
@@ -634,6 +642,7 @@ function RecordingCard({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al generar la minuta");
       setMinuta(data.minuta);
+      setShowMinutaModal(true);
     } catch (err) {
       setMinutaError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -729,12 +738,26 @@ function RecordingCard({
                 Descargar transcripción
               </button>
             )}
+            {recording.transcript.length > 0 && minuta && selectedTemplate && (
+              <button
+                onClick={() => setShowMinutaModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg"
+                style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}
+              >
+                <FileText size={15} />
+                Ver minuta
+              </button>
+            )}
             {recording.transcript.length > 0 && (
               <button
                 onClick={() => setShowTemplateSelect(true)}
                 disabled={generatingMinuta}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
+                  minuta
+                    ? "border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                    : "text-white hover:opacity-90 hover:shadow-lg"
+                }`}
+                style={!minuta ? { background: "linear-gradient(135deg, #10b981, #059669)" } : undefined}
               >
                 {generatingMinuta ? (
                   <>
@@ -744,7 +767,7 @@ function RecordingCard({
                 ) : (
                   <>
                     <Sparkles size={15} />
-                    Generar minuta
+                    {minuta ? "Nueva minuta" : "Generar minuta"}
                   </>
                 )}
               </button>
@@ -767,12 +790,13 @@ function RecordingCard({
           )}
 
           {/* Minuta modal */}
-          {minuta && selectedTemplate && (
+          {showMinutaModal && minuta && selectedTemplate && (
             <MinutaModal
               minuta={minuta}
               template={selectedTemplate}
               host={recording.host}
-              onClose={() => { setMinuta(null); setSelectedTemplate(null); }}
+              onClose={() => setShowMinutaModal(false)}
+              onUpdate={(updated) => setMinuta(updated)}
             />
           )}
 
