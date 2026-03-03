@@ -2,21 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getBot, getBotTranscript } from "@/lib/recall";
 
-// Auto-sync: create recording entries for done bots that are missing from recordings table
+// Auto-sync: create recording entries for bots that finished but are missing from recordings table.
+// Checks bots with status "done", "call_ended", or "recording_done" — if Recall confirms
+// the recording is done, it syncs them regardless of the local status (webhook may have failed).
 async function autoSync() {
-  const { data: doneBots } = await supabase
+  const { data: candidates } = await supabase
     .from("recall_bots")
     .select("*")
-    .eq("status", "done");
+    .in("status", ["done", "call_ended", "recording_done"]);
 
-  if (!doneBots || doneBots.length === 0) return;
+  if (!candidates || candidates.length === 0) return;
 
   const { data: existingRecs } = await supabase
     .from("recordings")
     .select("recall_bot_id");
 
   const existingBotIds = new Set((existingRecs || []).map((r) => r.recall_bot_id));
-  const missing = doneBots.filter((b) => !existingBotIds.has(b.recall_bot_id));
+  const missing = candidates.filter((b) => !existingBotIds.has(b.recall_bot_id));
 
   if (missing.length === 0) return;
 
@@ -60,6 +62,15 @@ async function autoSync() {
 
       const platform = botRecord.meeting_url?.includes("zoom") ? "Zoom" : "Google Meet";
 
+      // Double-check no recording was inserted in the meantime (race condition with webhook)
+      const { data: existing } = await supabase
+        .from("recordings")
+        .select("id")
+        .eq("recall_bot_id", botRecord.recall_bot_id)
+        .limit(1);
+
+      if (existing && existing.length > 0) continue;
+
       await supabase.from("recordings").insert({
         recall_bot_id: botRecord.recall_bot_id,
         title: botRecord.meeting_title || "Reunión",
@@ -71,6 +82,14 @@ async function autoSync() {
         transcript,
         status: "done",
       });
+
+      // Also fix the bot status in recall_bots if it was stuck
+      if (botRecord.status !== "done") {
+        await supabase
+          .from("recall_bots")
+          .update({ status: "done" })
+          .eq("recall_bot_id", botRecord.recall_bot_id);
+      }
     } catch {
       // Skip this bot on error
     }

@@ -17,6 +17,11 @@ import { useState, useEffect } from "react";
 
 const menuItems = [
   {
+    label: "Bot de Grabación",
+    href: "/bot-grabacion",
+    icon: Bot,
+  },
+  {
     label: "Perfil de Cliente",
     href: "/perfil-cliente",
     icon: UserCircle,
@@ -30,11 +35,6 @@ const menuItems = [
     label: "Números de Teléfono",
     href: "/numeros-telefono",
     icon: Phone,
-  },
-  {
-    label: "Bot de Grabación",
-    href: "/bot-grabacion",
-    icon: Bot,
   },
   {
     label: "Plantillas",

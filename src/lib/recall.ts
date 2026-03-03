@@ -38,7 +38,7 @@ export async function createBot(params: CreateBotParams) {
     path: "/bot/",
     body: {
       meeting_url: params.meeting_url,
-      bot_name: params.bot_name || "Möglich Bot",
+      bot_name: params.bot_name || "Asistente Comercial",
       ...(params.join_at ? { join_at: params.join_at } : {}),
       recording_config: {
         transcript: {

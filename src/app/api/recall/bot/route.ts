@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
     // Send bot to Recall.ai
     const recallBot = await createBot({
       meeting_url,
-      bot_name: "Möglich Bot",
+      bot_name: "Asistente Comercial",
     }) as { id: string };
 
     // Save to Supabase
     const { data, error } = await supabase.from("recall_bots").insert({
       recall_bot_id: recallBot.id,
       meeting_url,
-      bot_name: "Möglich Bot",
+      bot_name: "Asistente Comercial",
       host: host || "Operaciones",
       status: "joining_call",
       meeting_title: meeting_title || "Reunión",

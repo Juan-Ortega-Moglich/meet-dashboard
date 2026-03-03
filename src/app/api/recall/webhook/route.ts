@@ -103,6 +103,19 @@ async function handleBotDone(botId: string) {
     // Detect platform from meeting URL
     const platform = botRecord.meeting_url?.includes("zoom") ? "Zoom" : "Google Meet";
 
+    // Check if recording already exists (autoSync may have inserted it)
+    const { data: existingRec } = await supabase
+      .from("recordings")
+      .select("id")
+      .eq("recall_bot_id", botId)
+      .limit(1);
+
+    if (existingRec && existingRec.length > 0) {
+      console.log(`[Webhook] Recording already exists for bot ${botId}, skipping insert`);
+      await supabase.from("recall_bots").update({ status: "done" }).eq("recall_bot_id", botId);
+      return;
+    }
+
     // Save recording to Supabase
     const { error } = await supabase.from("recordings").insert({
       recall_bot_id: botId,

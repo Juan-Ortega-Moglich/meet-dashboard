@@ -57,12 +57,6 @@ const minutaData = {
   ],
   summary:
     "Se revisaron los resultados del Q1 alcanzando el 92% de la meta comercial. El pipeline muestra 47 oportunidades activas con valor estimado de $2.3M MXN. Se priorizará el sector fintech y salud para Q2 con enfoque en upselling a clientes existentes.",
-  commitments: [
-    "Presentar nueva estrategia de pricing al board — 8 Mar",
-    "Lanzar campaña de outreach sector fintech — 10 Mar",
-    "Reunión de seguimiento cuentas estratégicas — 15 Mar",
-    "Workshop capacitación nuevo CRM — 20 Mar",
-  ],
   conclusion:
     "El equipo tiene claridad sobre las prioridades de Q2 y los recursos necesarios. Se espera un incremento del 15% en el pipeline para finales de marzo. Próxima reunión de seguimiento: 15 de marzo, 10:00 AM.",
 };
@@ -532,16 +526,9 @@ export default function PlantillasPage() {
                 <Card title="Resumen" color={colors.primary}>
                   <p style={{ ...text, lineHeight: 1.7 }}>{minutaData.summary}</p>
                 </Card>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <Card title="Próximos pasos" color={colors.primary}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      {minutaData.commitments.map((item, i) => (<p key={i} style={listItem}>{i + 1}. {item}</p>))}
-                    </div>
-                  </Card>
-                  <Card title="Conclusión" color={colors.primary}>
-                    <p style={{ ...text, lineHeight: 1.7 }}>{minutaData.conclusion}</p>
-                  </Card>
-                </div>
+                <Card title="Conclusión" color={colors.primary}>
+                  <p style={{ ...text, lineHeight: 1.7 }}>{minutaData.conclusion}</p>
+                </Card>
               </div>
             </div>
           </div>

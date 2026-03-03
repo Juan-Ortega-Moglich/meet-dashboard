@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
 const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`;
-const SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
+const SCOPES = "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive";
 
 // Build the Google OAuth2 authorization URL
 export function getAuthUrl(host: string): string {
@@ -102,6 +102,115 @@ export async function getAccessToken(host: string): Promise<string> {
     .eq("host", host);
 
   return newAccessToken;
+}
+
+// --- Google Drive helpers ---
+
+// Find a folder by name inside a parent folder (or root)
+export async function findDriveFolder(
+  accessToken: string,
+  folderName: string,
+  parentId?: string
+): Promise<string | null> {
+  const q = parentId
+    ? `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
+    : `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+
+  const params = new URLSearchParams({ q, fields: "files(id,name)", pageSize: "1" });
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.files?.[0]?.id || null;
+}
+
+// Create a folder in Drive
+export async function createDriveFolder(
+  accessToken: string,
+  folderName: string,
+  parentId?: string
+): Promise<string> {
+  const metadata: Record<string, unknown> = {
+    name: folderName,
+    mimeType: "application/vnd.google-apps.folder",
+  };
+  if (parentId) metadata.parents = [parentId];
+
+  const res = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(metadata),
+  });
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Failed to create folder: ${error}`);
+  }
+
+  const data = await res.json();
+  return data.id;
+}
+
+// Upload a PDF to Drive (multipart upload)
+export async function uploadPdfToDrive(
+  accessToken: string,
+  fileName: string,
+  pdfBase64: string,
+  folderId?: string
+): Promise<{ fileId: string; webViewLink: string }> {
+  const metadata: Record<string, unknown> = {
+    name: fileName,
+    mimeType: "application/pdf",
+  };
+  if (folderId) metadata.parents = [folderId];
+
+  // Build multipart body
+  const boundary = "minuta_upload_boundary";
+  const pdfBytes = Buffer.from(pdfBase64, "base64");
+
+  const body = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`
+    ),
+    pdfBytes,
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+
+  const res = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(`Failed to upload PDF: ${error}`);
+  }
+
+  return res.json();
+}
+
+// Make a file viewable by anyone with the link
+export async function shareDriveFile(accessToken: string, fileId: string): Promise<void> {
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ role: "reader", type: "anyone" }),
+  });
 }
 
 // Fetch calendar events from Google Calendar API

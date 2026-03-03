@@ -26,22 +26,27 @@ export async function POST(req: NextRequest) {
 Debes devolver ÚNICAMENTE un JSON válido (sin markdown, sin backticks, sin texto adicional) con exactamente estas claves:
 
 {
-  "minutaReunion": "Título o tema principal de la reunión",
-  "fecha": "Fecha formateada de la reunión",
+  "minutaReunion": "Nombre exacto de la reunión tal como fue proporcionado",
+  "fecha": "Fecha formateada en español (ej: 3 de Marzo, 2026 — 10:00 AM)",
   "asistentes": "Lista de asistentes separados por comas, extraídos de la transcripción",
-  "participacion": "Breve descripción del rol o participación de cada asistente",
-  "ordenDelDia": "Puntos tratados en la reunión, cada uno en una línea nueva",
-  "pendientes": "Tareas o temas que quedaron pendientes, cada uno en una línea nueva",
-  "resumen": "Resumen ejecutivo de la reunión en 3-5 oraciones",
-  "compromisos": "Compromisos y tareas asignadas con responsables, cada uno en una línea nueva",
-  "conclusion": "Conclusión general de la reunión"
+  "participacion": [
+    { "name": "Nombre corto (ej: Andrés L.)", "pct": 35 }
+  ],
+  "ordenDelDia": ["punto 1", "punto 2", "punto 3", "punto 4", "punto 5"],
+  "pendientes": ["pendiente 1", "pendiente 2", "pendiente 3", "pendiente 4", "pendiente 5"],
+  "resumen": "Resumen ejecutivo de exactamente 100 palabras",
+  "conclusion": "Conclusión de exactamente 70 palabras"
 }
 
-IMPORTANTE:
+REGLAS ESTRICTAS:
 - Responde SOLO con el JSON, sin markdown ni explicaciones
+- "participacion" es un ARRAY de objetos con "name" (nombre corto) y "pct" (porcentaje entero). Los porcentajes deben sumar 100. Calcula el porcentaje basándote en cuánto habló cada participante en la transcripción.
+- "ordenDelDia" es un ARRAY de exactamente 5 strings: los 5 puntos clave de lo que trató la reunión.
+- "pendientes" es un ARRAY de exactamente 5 strings: las 5 tareas o temas pendientes que surgieron. Incluye responsable y fecha si se mencionaron.
+- "resumen" debe tener EXACTAMENTE 100 palabras. Ni más ni menos.
+- "conclusion" debe tener EXACTAMENTE 70 palabras. Ni más ni menos.
 - Extrae los nombres de los participantes de la transcripción
-- Sé conciso y profesional
-- Todo en español`;
+- Todo en español, tono profesional y ejecutivo`;
 
     const userPrompt = `Genera la minuta de la siguiente reunión:
 
@@ -77,11 +82,10 @@ ${transcriptText}`;
         minutaReunion: title,
         fecha: date,
         asistentes: "",
-        participacion: "",
-        ordenDelDia: raw,
-        pendientes: "",
-        resumen: "",
-        compromisos: "",
+        participacion: [],
+        ordenDelDia: [],
+        pendientes: [],
+        resumen: raw,
         conclusion: "",
       };
     }

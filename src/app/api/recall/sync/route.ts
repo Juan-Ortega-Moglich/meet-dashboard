@@ -5,11 +5,11 @@ import { getBot, getBotTranscript } from "@/lib/recall";
 // POST /api/recall/sync — Sync done bots that are missing from recordings table
 export async function POST() {
   try {
-    // Get all recall_bots with status "done"
+    // Get all recall_bots that may have finished (done, call_ended, recording_done)
     const { data: doneBots, error: botsError } = await supabase
       .from("recall_bots")
       .select("*")
-      .eq("status", "done");
+      .in("status", ["done", "call_ended", "recording_done"]);
 
     if (botsError) {
       return NextResponse.json({ error: botsError.message }, { status: 500 });
@@ -94,6 +94,13 @@ export async function POST() {
           errors.push(`Bot ${botRecord.recall_bot_id}: ${insertError.message}`);
         } else {
           synced++;
+          // Fix bot status if it was stuck
+          if (botRecord.status !== "done") {
+            await supabase
+              .from("recall_bots")
+              .update({ status: "done" })
+              .eq("recall_bot_id", botRecord.recall_bot_id);
+          }
         }
       } catch (err) {
         errors.push(`Bot ${botRecord.recall_bot_id}: ${err instanceof Error ? err.message : "Unknown error"}`);
