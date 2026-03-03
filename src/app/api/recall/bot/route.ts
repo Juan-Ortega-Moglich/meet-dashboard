@@ -53,6 +53,11 @@ export async function GET(req: NextRequest) {
 
   if (host) {
     query = query.eq("host", host);
+  } else {
+    // When no host filter, limit to today's bots only
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    query = query.gte("created_at", todayStart.toISOString());
   }
 
   const { data, error } = await query;

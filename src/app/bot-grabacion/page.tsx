@@ -42,6 +42,7 @@ interface CalendarEvent {
   meetLink: string | null;
   organizer: string;
   status: string;
+  _host?: string; // used in "Todos" view
 }
 
 // --- Mock Data (for hosts without calendar integration) ---
@@ -240,6 +241,7 @@ function CalendarMeetingCard({
           <div className="min-w-0">
             <p className="font-medium text-gray-900 truncate">{event.summary}</p>
             <p className="text-xs text-gray-500">
+              {event._host && <span className="font-medium text-gray-700">{event._host} · </span>}
               {event.meetLink?.includes("teams") ? "Microsoft Teams" : "Google Meet"}
             </p>
           </div>
@@ -303,7 +305,7 @@ function CalendarMeetingCard({
   );
 }
 
-function ActiveBotCard({ bot, onLeave, leaving }: { bot: ActiveBot; onLeave: (recallBotId: string) => void; leaving: boolean }) {
+function ActiveBotCard({ bot, onLeave, leaving, showHost }: { bot: ActiveBot; onLeave: (recallBotId: string) => void; leaving: boolean; showHost?: boolean }) {
   const [confirming, setConfirming] = useState(false);
   const time = new Date(bot.created_at).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
   const isActive = !["done", "fatal", "call_ended"].includes(bot.status);
@@ -316,7 +318,10 @@ function ActiveBotCard({ bot, onLeave, leaving }: { bot: ActiveBot; onLeave: (re
           </div>
           <div className="min-w-0">
             <p className="font-medium text-gray-900 truncate">{bot.meeting_title}</p>
-            <p className="text-xs text-gray-500 truncate">{bot.meeting_url}</p>
+            <p className="text-xs text-gray-500 truncate">
+              {showHost && <span className="font-medium text-gray-700">{bot.host} · </span>}
+              {bot.meeting_url}
+            </p>
           </div>
         </div>
         <RecallBotBadge status={bot.status} />
@@ -504,7 +509,7 @@ function JoinBotModal({
 // --- Page ---
 
 export default function BotGrabacionPage() {
-  const [selectedHostId, setSelectedHostId] = useState(hosts[0].id);
+  const [selectedHostId, setSelectedHostId] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [activeBots, setActiveBots] = useState<ActiveBot[]>([]);
 
@@ -517,13 +522,15 @@ export default function BotGrabacionPage() {
   const [scheduledMeetings, setScheduledMeetings] = useState<Set<string>>(new Set());
   const [autoScheduleRan, setAutoScheduleRan] = useState(false);
 
+  const isTodos = selectedHostId === "todos";
   const selectedHost = hosts.find((h) => h.id === selectedHostId) ?? hosts[0];
-  const isConnectedHost = selectedHost.connected;
+  const isConnectedHost = isTodos || selectedHost.connected;
 
   // Fetch active bots
   const fetchActiveBots = useCallback(async () => {
     try {
-      const res = await fetch(`/api/recall/bot?host=${selectedHost.name}`);
+      const url = isTodos ? "/api/recall/bot" : `/api/recall/bot?host=${selectedHost.name}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         const bots: ActiveBot[] = data.bots || [];
@@ -532,7 +539,7 @@ export default function BotGrabacionPage() {
         setScheduledMeetings(new Set(bots.map((b) => b.meeting_url)));
       }
     } catch { /* silently fail */ }
-  }, [selectedHost.name]);
+  }, [selectedHost.name, isTodos]);
 
   // Auto-schedule bots for all hosts (runs once on page load)
   const runAutoSchedule = useCallback(async () => {
@@ -558,28 +565,68 @@ export default function BotGrabacionPage() {
     if (!isConnectedHost) return;
     setCalendarLoading(true);
     try {
-      const [todayRes, upcomingRes] = await Promise.all([
-        fetch(`/api/calendar?host=${selectedHost.name}&range=today`),
-        fetch(`/api/calendar?host=${selectedHost.name}&range=upcoming`),
-      ]);
-      const todayData = await todayRes.json();
-      const upcomingData = await upcomingRes.json();
+      if (isTodos) {
+        // Fetch all hosts in parallel
+        const allTodayEvents: CalendarEvent[] = [];
+        const allUpcomingEvents: CalendarEvent[] = [];
 
-      if (todayData.authorized === false && selectedHost.calendarType !== "ics") {
-        setCalendarAuthorized(false);
-        setTodayEvents([]);
-        setUpcomingEvents([]);
-      } else {
+        const results = await Promise.all(
+          hosts.map(async (h) => {
+            try {
+              const [todayRes, upcomingRes] = await Promise.all([
+                fetch(`/api/calendar?host=${h.name}&range=today`),
+                fetch(`/api/calendar?host=${h.name}&range=upcoming`),
+              ]);
+              const todayData = await todayRes.json();
+              const upcomingData = await upcomingRes.json();
+              return {
+                host: h.name,
+                todayEvents: (todayData.events || []) as CalendarEvent[],
+                upcomingEvents: (upcomingData.events || []) as CalendarEvent[],
+                authorized: todayData.authorized !== false,
+              };
+            } catch {
+              return { host: h.name, todayEvents: [], upcomingEvents: [], authorized: false };
+            }
+          })
+        );
+
+        for (const r of results) {
+          for (const e of r.todayEvents) allTodayEvents.push({ ...e, _host: r.host });
+          for (const e of r.upcomingEvents) allUpcomingEvents.push({ ...e, _host: r.host });
+        }
+
+        // Sort by start time
+        allTodayEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        allUpcomingEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+
         setCalendarAuthorized(true);
-        setTodayEvents(todayData.events || []);
-        setUpcomingEvents(upcomingData.events || []);
+        setTodayEvents(allTodayEvents);
+        setUpcomingEvents(allUpcomingEvents);
+      } else {
+        const [todayRes, upcomingRes] = await Promise.all([
+          fetch(`/api/calendar?host=${selectedHost.name}&range=today`),
+          fetch(`/api/calendar?host=${selectedHost.name}&range=upcoming`),
+        ]);
+        const todayData = await todayRes.json();
+        const upcomingData = await upcomingRes.json();
+
+        if (todayData.authorized === false && selectedHost.calendarType !== "ics") {
+          setCalendarAuthorized(false);
+          setTodayEvents([]);
+          setUpcomingEvents([]);
+        } else {
+          setCalendarAuthorized(true);
+          setTodayEvents(todayData.events || []);
+          setUpcomingEvents(upcomingData.events || []);
+        }
       }
     } catch {
       setCalendarAuthorized(false);
     } finally {
       setCalendarLoading(false);
     }
-  }, [isConnectedHost, selectedHost.name]);
+  }, [isConnectedHost, selectedHost.name, isTodos]);
 
   useEffect(() => {
     fetchActiveBots();
@@ -599,12 +646,13 @@ export default function BotGrabacionPage() {
     if (!event.meetLink) return;
     setSendingBotId(event.id);
     try {
+      const host = event._host || selectedHost.name;
       const res = await fetch("/api/recall/bot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           meeting_url: event.meetLink,
-          host: selectedHost.name,
+          host,
           meeting_title: event.summary,
         }),
       });
@@ -658,6 +706,7 @@ export default function BotGrabacionPage() {
             }}
             className="w-full appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all cursor-pointer"
           >
+            <option value="todos">Todos</option>
             {hosts.map((host) => (
               <option key={host.id} value={host.id}>
                 {host.name} {host.connected ? " (Conectado)" : ""}
@@ -678,7 +727,7 @@ export default function BotGrabacionPage() {
       </div>
 
       {/* Connect Calendar prompt (for Google Calendar hosts not yet authorized) */}
-      {isConnectedHost && calendarAuthorized === false && selectedHost.calendarType === "google" && (
+      {!isTodos && isConnectedHost && calendarAuthorized === false && selectedHost.calendarType === "google" && (
         <div className="mb-6 md:mb-8 bg-white rounded-2xl border border-blue-200 p-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 mb-4">
             <Calendar size={24} className="text-[#2055e4]" />
@@ -707,7 +756,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">{scheduledBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {scheduledBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} />)}
+            {scheduledBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} />)}
           </div>
         </div>
       )}
@@ -721,7 +770,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">{liveActiveBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} />)}
+            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} />)}
           </div>
         </div>
       )}
@@ -735,7 +784,7 @@ export default function BotGrabacionPage() {
             <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{completedBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {completedBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} />)}
+            {completedBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} />)}
           </div>
         </div>
       )}
@@ -794,7 +843,7 @@ export default function BotGrabacionPage() {
       )}
 
       {/* === MOCK MEETINGS (non-connected hosts) === */}
-      {!isConnectedHost && mockData && (
+      {!isTodos && !isConnectedHost && mockData && (
         <>
           <div className="mb-6 md:mb-8">
             <div className="flex items-center gap-2 mb-4">
@@ -831,7 +880,7 @@ export default function BotGrabacionPage() {
         </>
       )}
 
-      <JoinBotModal open={modalOpen} onClose={handleModalClose} selectedHost={selectedHost.name} />
+      <JoinBotModal open={modalOpen} onClose={handleModalClose} selectedHost={isTodos ? "Operaciones" : selectedHost.name} />
     </div>
   );
 }
