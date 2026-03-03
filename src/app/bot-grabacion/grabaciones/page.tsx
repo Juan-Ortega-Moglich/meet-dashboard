@@ -456,9 +456,9 @@ function MinutaModal({
           /* Preview mode — template render */
           <div className="flex-1 overflow-y-auto p-5">
             <div className="mx-auto" style={{ width: `${TEMPLATE_WIDTH}px` }}>
-              <div ref={templateRef} style={{ width: `${TEMPLATE_WIDTH}px`, backgroundColor: "#eef1f5", borderRadius: "16px", overflow: "hidden" }}>
+              <div ref={templateRef} style={{ width: `${TEMPLATE_WIDTH}px`, backgroundColor: "#eef1f5", overflow: "hidden" }}>
                 {/* Logo header */}
-                <div style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})`, padding: "24px 20px", display: "flex", justifyContent: "center", alignItems: "center", borderRadius: "16px 16px 0 0" }}>
+                <div style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})`, padding: "24px 20px", display: "flex", justifyContent: "center", alignItems: "center" }}>
                   {logoDataUrl ? (
                     <img src={logoDataUrl} alt="Logo" style={{ height: "56px", width: "auto", objectFit: "contain" }} />
                   ) : (
