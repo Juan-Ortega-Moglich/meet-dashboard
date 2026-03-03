@@ -43,8 +43,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ events, authorized: true, source: "ics" });
     }
 
-    // Default: Google Calendar
-    const events = await getCalendarEvents(host, timeMin, timeMax);
+    // Default: Google Calendar — only return events with a video meeting link
+    const allEvents = await getCalendarEvents(host, timeMin, timeMax);
+    const events = allEvents.filter((e) => e.meetLink);
     return NextResponse.json({ events, authorized: true, source: "google" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
