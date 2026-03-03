@@ -282,12 +282,12 @@ function MinutaModal({
     try {
       const html2canvas = (await import("html2canvas-pro")).default;
       const { jsPDF } = await import("jspdf");
-      const canvas = await html2canvas(templateRef.current, { scale: 2, useCORS: true, backgroundColor: "#eef1f5", width: TEMPLATE_WIDTH, windowWidth: TEMPLATE_WIDTH });
-      const imgData = canvas.toDataURL("image/png");
+      const canvas = await html2canvas(templateRef.current, { scale: 1.5, useCORS: true, backgroundColor: "#eef1f5", width: TEMPLATE_WIDTH, windowWidth: TEMPLATE_WIDTH });
+      const imgData = canvas.toDataURL("image/jpeg", 0.85);
       const pdfW = 210, pdfH = (canvas.height * pdfW) / canvas.width, pageH = 297;
       const pdf = new jsPDF("p", "mm", "a4");
       let y = 0, left = pdfH;
-      while (left > 0) { if (y > 0) pdf.addPage(); pdf.addImage(imgData, "PNG", 0, -y, pdfW, pdfH); y += pageH; left -= pageH; }
+      while (left > 0) { if (y > 0) pdf.addPage(); pdf.addImage(imgData, "JPEG", 0, -y, pdfW, pdfH); y += pageH; left -= pageH; }
 
       // Get base64 without the data:application/pdf;base64, prefix
       const pdfBase64 = pdf.output("datauristring").split(",")[1];
@@ -305,8 +305,13 @@ function MinutaModal({
         }),
       });
 
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMsg = "Error al subir";
+        try { errorMsg = JSON.parse(text).error || errorMsg; } catch { errorMsg = res.status === 413 ? "El archivo es demasiado grande" : `Error ${res.status}`; }
+        throw new Error(errorMsg);
+      }
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Error al subir");
       setUploadResult({ link: result.link });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Error al guardar en Drive");
