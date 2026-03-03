@@ -263,10 +263,9 @@ function MinutaModal({
       const { jsPDF } = await import("jspdf");
       const canvas = await html2canvas(templateRef.current, { scale: 2, useCORS: true, backgroundColor: "#eef1f5", width: TEMPLATE_WIDTH, windowWidth: TEMPLATE_WIDTH });
       const imgData = canvas.toDataURL("image/png");
-      const pdfW = 210, pdfH = (canvas.height * pdfW) / canvas.width, pageH = 297;
-      const pdf = new jsPDF("p", "mm", "a4");
-      let y = 0, left = pdfH;
-      while (left > 0) { if (y > 0) pdf.addPage(); pdf.addImage(imgData, "PNG", 0, -y, pdfW, pdfH); y += pageH; left -= pageH; }
+      const pdfW = 210, pdfH = (canvas.height * pdfW) / canvas.width;
+      const pdf = new jsPDF("p", "mm", [pdfW, pdfH]);
+      pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
       pdf.save(`minuta-${data.minutaReunion.toLowerCase().replace(/\s+/g, "-").slice(0, 40)}.pdf`);
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -284,10 +283,9 @@ function MinutaModal({
       const { jsPDF } = await import("jspdf");
       const canvas = await html2canvas(templateRef.current, { scale: 1.5, useCORS: true, backgroundColor: "#eef1f5", width: TEMPLATE_WIDTH, windowWidth: TEMPLATE_WIDTH });
       const imgData = canvas.toDataURL("image/jpeg", 0.85);
-      const pdfW = 210, pdfH = (canvas.height * pdfW) / canvas.width, pageH = 297;
-      const pdf = new jsPDF("p", "mm", "a4");
-      let y = 0, left = pdfH;
-      while (left > 0) { if (y > 0) pdf.addPage(); pdf.addImage(imgData, "JPEG", 0, -y, pdfW, pdfH); y += pageH; left -= pageH; }
+      const pdfW = 210, pdfH = (canvas.height * pdfW) / canvas.width;
+      const pdf = new jsPDF("p", "mm", [pdfW, pdfH]);
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfW, pdfH);
 
       // Get base64 without the data:application/pdf;base64, prefix
       const pdfBase64 = pdf.output("datauristring").split(",")[1];
