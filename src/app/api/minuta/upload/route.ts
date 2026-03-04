@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAccessToken, findDriveFolder, createDriveFolder, uploadPdfToDrive, shareDriveFile } from "@/lib/google";
 import { supabase } from "@/lib/supabase";
 
+// Map host → Drive folder name inside "Minutas Moglich"
+const HOST_FOLDER_MAP: Record<string, string> = {
+  Operaciones: "Minutas sin formato",
+  Andres: "Minutas sin formato",
+  Pablo: "Minutas sin formato",
+  Rafa: "Minutas sin formato",
+  Inbest: "Obok",
+  Wisdom: "Wisdom",
+  Biofleming: "Biofleming",
+};
+
 // POST /api/minuta/upload — Upload PDF to Drive and save to meeting_minutes
 export async function POST(req: NextRequest) {
   try {
@@ -20,14 +31,11 @@ export async function POST(req: NextRequest) {
       minutasRootId = await createDriveFolder(accessToken, "Minutas Moglich");
     }
 
-    // Find or create client subfolder inside Minutas
-    let targetFolderId = minutasRootId;
-    if (cliente) {
-      let clientFolderId = await findDriveFolder(accessToken, cliente, minutasRootId);
-      if (!clientFolderId) {
-        clientFolderId = await createDriveFolder(accessToken, cliente, minutasRootId);
-      }
-      targetFolderId = clientFolderId;
+    // Resolve the correct subfolder based on host
+    const folderName = HOST_FOLDER_MAP[cliente] || "Minutas sin formato";
+    let targetFolderId = await findDriveFolder(accessToken, folderName, minutasRootId);
+    if (!targetFolderId) {
+      targetFolderId = await createDriveFolder(accessToken, folderName, minutasRootId);
     }
 
     // Upload the PDF
