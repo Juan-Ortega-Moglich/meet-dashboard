@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBot, getBotTranscript } from "@/lib/recall";
 import { supabase } from "@/lib/supabase";
+import { triggerAutoMinuta } from "@/lib/auto-minuta";
 
 // POST /api/recall/webhook — Receive events from Recall.ai
 export async function POST(req: NextRequest) {
@@ -116,8 +117,8 @@ async function handleBotDone(botId: string) {
       return;
     }
 
-    // Save recording to Supabase
-    const { error } = await supabase.from("recordings").insert({
+    // Save recording to Supabase and get the inserted id
+    const { data: insertedRec, error } = await supabase.from("recordings").insert({
       recall_bot_id: botId,
       title: botRecord.meeting_title || "Reunión",
       host: botRecord.host,
@@ -127,12 +128,23 @@ async function handleBotDone(botId: string) {
       video_url: videoUrl,
       transcript,
       status: "done",
-    });
+    }).select("id").single();
 
     if (error) {
       console.error("[Webhook] Failed to save recording:", error);
     } else {
       console.log(`[Webhook] Recording saved for bot ${botId}`);
+
+      // Trigger auto-minuta generation (fire and forget)
+      triggerAutoMinuta({
+        recordingId: insertedRec.id,
+        recallBotId: botId,
+        host: botRecord.host,
+        title: botRecord.meeting_title || "Reunión",
+        date: recording.started_at || new Date().toISOString(),
+        duration,
+        transcript,
+      }).catch((err) => console.error("[Webhook] Auto-minuta trigger failed:", err));
     }
 
     // Update bot status

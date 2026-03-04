@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getBot, getBotTranscript } from "@/lib/recall";
+import { triggerAutoMinuta } from "@/lib/auto-minuta";
 
 // POST /api/recall/sync — Sync done bots that are missing from recordings table
 export async function POST() {
@@ -78,7 +79,7 @@ export async function POST() {
         const platform = botRecord.meeting_url?.includes("zoom") ? "Zoom" : "Google Meet";
 
         // Insert into recordings
-        const { error: insertError } = await supabase.from("recordings").insert({
+        const { data: insertedRec, error: insertError } = await supabase.from("recordings").insert({
           recall_bot_id: botRecord.recall_bot_id,
           title: botRecord.meeting_title || "Reunión",
           host: botRecord.host,
@@ -88,12 +89,26 @@ export async function POST() {
           video_url: videoUrl,
           transcript,
           status: "done",
-        });
+        }).select("id").single();
 
         if (insertError) {
           errors.push(`Bot ${botRecord.recall_bot_id}: ${insertError.message}`);
         } else {
           synced++;
+
+          // Trigger auto-minuta generation
+          if (insertedRec) {
+            triggerAutoMinuta({
+              recordingId: insertedRec.id,
+              recallBotId: botRecord.recall_bot_id,
+              host: botRecord.host,
+              title: botRecord.meeting_title || "Reunión",
+              date: recording.started_at || new Date().toISOString(),
+              duration,
+              transcript,
+            }).catch((err) => console.error("[Sync] Auto-minuta trigger failed:", err));
+          }
+
           // Fix bot status if it was stuck
           if (botRecord.status !== "done") {
             await supabase

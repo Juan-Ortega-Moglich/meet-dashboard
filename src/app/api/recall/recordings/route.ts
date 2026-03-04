@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getBot, getBotTranscript } from "@/lib/recall";
+import { triggerAutoMinuta } from "@/lib/auto-minuta";
 
 // Auto-sync: create recording entries for bots that finished but are missing from recordings table.
 // Checks bots with status "done", "call_ended", or "recording_done" — if Recall confirms
@@ -71,7 +72,7 @@ async function autoSync() {
 
       if (existing && existing.length > 0) continue;
 
-      await supabase.from("recordings").insert({
+      const { data: insertedRec } = await supabase.from("recordings").insert({
         recall_bot_id: botRecord.recall_bot_id,
         title: botRecord.meeting_title || "Reunión",
         host: botRecord.host,
@@ -81,7 +82,20 @@ async function autoSync() {
         video_url: videoUrl,
         transcript,
         status: "done",
-      });
+      }).select("id").single();
+
+      // Trigger auto-minuta generation for newly synced recording
+      if (insertedRec) {
+        triggerAutoMinuta({
+          recordingId: insertedRec.id,
+          recallBotId: botRecord.recall_bot_id,
+          host: botRecord.host,
+          title: botRecord.meeting_title || "Reunión",
+          date: recording.started_at || new Date().toISOString(),
+          duration,
+          transcript,
+        }).catch((err) => console.error("[AutoSync] Auto-minuta trigger failed:", err));
+      }
 
       // Also fix the bot status in recall_bots if it was stuck
       if (botRecord.status !== "done") {
