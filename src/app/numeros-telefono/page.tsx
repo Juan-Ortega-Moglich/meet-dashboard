@@ -36,7 +36,7 @@ export default function NumerosTelefonoPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/clay");
+      const res = await fetch(`/api/clay?t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Error al leer datos");

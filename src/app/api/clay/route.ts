@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAccessToken } from "@/lib/google";
 
+export const dynamic = "force-dynamic";
+
 const SHEET_ID = process.env.CLAY_SHEET_ID || "1GgdBrwod_zmMV5qlXPIAYxYAVXXUFmvFF8IdrRBpfgY";
 
 // GET /api/clay — Read Clay Google Sheet data via Drive export
