@@ -1,8 +1,7 @@
 "use client";
 
-import { Phone, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { Phone, Plus, Loader2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import DataTable from "@/components/DataTable";
 
 const columns = [
@@ -13,7 +12,7 @@ const columns = [
     render: (value: string) =>
       value ? (
         <a
-          href={value}
+          href={value.startsWith("http") ? value : `https://${value}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[#2055e4] hover:text-[#5980ff] font-medium underline underline-offset-2 transition-colors"
@@ -21,40 +20,48 @@ const columns = [
           Ver perfil
         </a>
       ) : (
-        <span className="text-gray-400">—</span>
+        <span className="text-gray-400">&mdash;</span>
       ),
   },
-  { key: "numero", label: "Número" },
+  { key: "numero", label: "Numero" },
   { key: "fecha", label: "Fecha" },
 ];
 
 export default function NumerosTelefonoPage() {
   const [data, setData] = useState<Record<string, string>[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    const { data: rows, error } = await supabase
-      .from("kam_directory")
-      .select("kam, linkedin, numero, created_at")
-      .order("created_at", { ascending: false });
-
-    if (!error && rows) {
+    setError(null);
+    try {
+      const res = await fetch("/api/clay");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al leer datos");
+      }
+      const { data: rows } = await res.json();
       setData(
-        rows.map((r) => ({
-          kam: r.kam || "",
-          linkedin: r.linkedin || "",
-          numero: r.numero || "",
-          fecha: r.created_at ? new Date(r.created_at).toLocaleDateString("es-MX") : "",
+        (rows || []).map((r: Record<string, string>) => ({
+          kam: r["kam"] || "",
+          linkedin: r["linkedin"] || "",
+          numero: r["número"] || r["numero"] || "",
+          fecha: r["fecha"] || "",
         }))
       );
+    } catch (err) {
+      console.error("[NumerosTelefono] Error:", err);
+      setError(err instanceof Error ? err.message : "Error desconocido");
+      setData([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return (
     <div>
@@ -63,13 +70,17 @@ export default function NumerosTelefonoPage() {
           <Phone size={24} />
         </div>
         <h1 className="text-xl md:text-2xl font-bold text-[#212529]">
-          Números de Teléfono
+          Numeros de Telefono
         </h1>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-200 border-t-[#2055e4] rounded-full animate-spin" />
+          <Loader2 size={24} className="animate-spin text-[#2055e4]" />
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
+          {error}
         </div>
       ) : (
         <DataTable
@@ -85,7 +96,7 @@ export default function NumerosTelefonoPage() {
               style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}
             >
               <Plus size={16} />
-              Solicitar Número
+              Solicitar Numero
             </a>
           }
         />
