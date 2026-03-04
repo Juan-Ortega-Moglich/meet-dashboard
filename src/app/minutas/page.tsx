@@ -549,24 +549,6 @@ function AutoMinutasSection() {
     }
   };
 
-  if (loading && minutas.length === 0) {
-    return (
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Sparkles size={18} className="text-[#2055e4]" />
-          <h2 className="text-lg font-semibold text-gray-900">Minutas Automaticas</h2>
-        </div>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 size={20} className="animate-spin text-[#2055e4]" />
-        </div>
-      </div>
-    );
-  }
-
-  if (minutas.length === 0 && !loading) {
-    return null; // Don't show section if no auto-minutas
-  }
-
   return (
     <div className="mb-8">
       {/* Header */}
@@ -574,9 +556,11 @@ function AutoMinutasSection() {
         <div className="flex items-center gap-3">
           <Sparkles size={18} className="text-[#2055e4]" />
           <h2 className="text-lg font-semibold text-gray-900">Minutas Automaticas</h2>
-          <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">
-            {minutas.length}
-          </span>
+          {!loading && (
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">
+              {minutas.length}
+            </span>
+          )}
         </div>
         <button
           onClick={() => { setLoading(true); fetchMinutas(); }}
@@ -586,7 +570,7 @@ function AutoMinutasSection() {
         </button>
       </div>
 
-      {/* Host tabs */}
+      {/* Host tabs — always visible */}
       <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
         {HOST_TABS.map((tab) => {
           const isActive = selectedTab === tab;
@@ -607,7 +591,23 @@ function AutoMinutasSection() {
         })}
       </div>
 
-      {/* Grid of cards */}
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 size={20} className="animate-spin text-[#2055e4]" />
+        </div>
+      ) : minutas.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <Sparkles size={24} className="text-gray-300 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">
+            {selectedTab === "Todos"
+              ? "No hay minutas automaticas aun"
+              : `No hay minutas para ${selectedTab}`}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">Se generaran automaticamente al terminar cada reunion</p>
+        </div>
+      ) : (
+      /* Grid of cards */
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {minutas.map((m) => (
           <button
@@ -655,6 +655,7 @@ function AutoMinutasSection() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Modal */}
       {selectedMinuta && selectedMinuta.minuta_data && (
