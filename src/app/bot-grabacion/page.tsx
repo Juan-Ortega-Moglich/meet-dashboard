@@ -807,7 +807,76 @@ export default function BotGrabacionPage() {
         </div>
       )}
 
-      {/* Scheduled Bots */}
+      {/* 1. Active Bots — always visible */}
+      <div className="mb-6 md:mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Bot size={18} className="text-green-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Bots Activos</h2>
+          <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">{liveActiveBots.length}</span>
+        </div>
+        {liveActiveBots.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <Bot size={24} className="text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">No hay bots activos en este momento</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} meetingTime={meetingTimeMap.get(bot.meeting_url)} />)}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Today's Meetings (connected host) */}
+      {isConnectedHost && calendarAuthorized && (
+        <>
+          {calendarLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 size={24} className="animate-spin text-[#2055e4]" />
+            </div>
+          ) : (
+            <div className="mb-6 md:mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar size={18} className="text-[#2055e4]" />
+                <h2 className="text-lg font-semibold text-gray-900">Reuniones de Hoy</h2>
+                <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">{todayEvents.length}</span>
+              </div>
+              {todayEvents.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <p className="text-sm text-gray-400">No hay reuniones para hoy</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {todayEvents.map((event) => (
+                    <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} botStatus={event.meetLink ? (botStatusByUrl.get(event.meetLink) || null) : null} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 2. Today's Meetings (mock data for non-connected hosts) */}
+      {!isTodos && !isConnectedHost && mockData && (
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={18} className="text-[#2055e4]" />
+            <h2 className="text-lg font-semibold text-gray-900">Reuniones de Hoy</h2>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">{mockData.meetingsToday.length}</span>
+          </div>
+          {mockData.meetingsToday.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <p className="text-sm text-gray-400">No hay reuniones para hoy</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {mockData.meetingsToday.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. Scheduled Bots */}
       {scheduledBots.length > 0 && (
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-4">
@@ -821,21 +890,7 @@ export default function BotGrabacionPage() {
         </div>
       )}
 
-      {/* Active Bots */}
-      {liveActiveBots.length > 0 && (
-        <div className="mb-6 md:mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Bot size={18} className="text-green-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Bots Activos</h2>
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">{liveActiveBots.length}</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {liveActiveBots.map((bot) => <ActiveBotCard key={bot.id} bot={bot} onLeave={handleLeaveBot} leaving={leavingBotId === bot.recall_bot_id} showHost={isTodos} meetingTime={meetingTimeMap.get(bot.meeting_url)} />)}
-          </div>
-        </div>
-      )}
-
-      {/* Completed Bots */}
+      {/* 4. Completed Bots */}
       {completedBots.length > 0 && (
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-4">
@@ -849,95 +904,46 @@ export default function BotGrabacionPage() {
         </div>
       )}
 
-      {/* === CALENDAR EVENTS (connected host) === */}
-      {isConnectedHost && calendarAuthorized && (
-        <>
-          {calendarLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 size={24} className="animate-spin text-[#2055e4]" />
+      {/* 5. Upcoming Meetings (connected host) */}
+      {isConnectedHost && calendarAuthorized && !calendarLoading && (
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={18} className="text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900">Próximas Reuniones</h2>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{upcomingEvents.length}</span>
+          </div>
+          {upcomingEvents.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <p className="text-sm text-gray-400">No hay reuniones próximas</p>
             </div>
           ) : (
-            <>
-              {/* Today's meetings */}
-              <div className="mb-6 md:mb-8">
-                <div className="flex items-center gap-2 mb-4">
-                  <Calendar size={18} className="text-[#2055e4]" />
-                  <h2 className="text-lg font-semibold text-gray-900">Reuniones de Hoy</h2>
-                  <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">{todayEvents.length}</span>
-                </div>
-                {todayEvents.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                    <p className="text-sm text-gray-400">No hay reuniones para hoy</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {todayEvents.map((event) => (
-                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} botStatus={event.meetLink ? (botStatusByUrl.get(event.meetLink) || null) : null} />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Upcoming meetings */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock size={18} className="text-gray-400" />
-                  <h2 className="text-lg font-semibold text-gray-900">Próximas Reuniones</h2>
-                  <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{upcomingEvents.length}</span>
-                </div>
-                {upcomingEvents.length === 0 ? (
-                  <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                    <p className="text-sm text-gray-400">No hay reuniones próximas</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {upcomingEvents.map((event) => (
-                      <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} botStatus={event.meetLink ? (botStatusByUrl.get(event.meetLink) || null) : null} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {upcomingEvents.map((event) => (
+                <CalendarMeetingCard key={event.id} event={event} onSendBot={handleSendBotToEvent} sendingBotId={sendingBotId} botStatus={event.meetLink ? (botStatusByUrl.get(event.meetLink) || null) : null} />
+              ))}
+            </div>
           )}
-        </>
+        </div>
       )}
 
-      {/* === MOCK MEETINGS (non-connected hosts) === */}
+      {/* 5. Upcoming Meetings (mock data for non-connected hosts) */}
       {!isTodos && !isConnectedHost && mockData && (
-        <>
-          <div className="mb-6 md:mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar size={18} className="text-[#2055e4]" />
-              <h2 className="text-lg font-semibold text-gray-900">Reuniones de Hoy</h2>
-              <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">{mockData.meetingsToday.length}</span>
-            </div>
-            {mockData.meetingsToday.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <p className="text-sm text-gray-400">No hay reuniones para hoy</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {mockData.meetingsToday.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} />)}
-              </div>
-            )}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Clock size={18} className="text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900">Próximas Reuniones</h2>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{mockData.upcomingMeetings.length}</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Clock size={18} className="text-gray-400" />
-              <h2 className="text-lg font-semibold text-gray-900">Próximas Reuniones</h2>
-              <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{mockData.upcomingMeetings.length}</span>
+          {mockData.upcomingMeetings.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <p className="text-sm text-gray-400">No hay reuniones próximas</p>
             </div>
-            {mockData.upcomingMeetings.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <p className="text-sm text-gray-400">No hay reuniones próximas</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {mockData.upcomingMeetings.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} />)}
-              </div>
-            )}
-          </div>
-        </>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {mockData.upcomingMeetings.map((meeting) => <MeetingCard key={meeting.id} meeting={meeting} />)}
+            </div>
+          )}
+        </div>
       )}
 
       <JoinBotModal open={modalOpen} onClose={handleModalClose} selectedHost={isTodos ? "Operaciones" : selectedHost.name} />
