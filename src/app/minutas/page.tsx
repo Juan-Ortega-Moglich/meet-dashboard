@@ -77,7 +77,7 @@ function formatDate(dateStr: string): string {
 
 // --- Pie chart SVG ---
 function PieChart({ data, primary, secondary }: { data: ParticipationEntry[]; primary: string; secondary: string }) {
-  const pieColors = [primary, secondary, `${primary}aa`, `${secondary}aa`, "#cbd5e1"];
+  const pieColors = [primary, "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899"];
   const total = data.reduce((s, d) => s + d.pct, 0) || 1;
   let cumAngle = -90;
 
