@@ -102,20 +102,48 @@ const colorPresets = [
   { name: "Teal Moderno", primary: "#115e59", secondary: "#14b8a6" },
 ];
 
-// --- localStorage helpers ---
+// --- API helpers ---
 
-const STORAGE_KEY = "plantillas-minutas";
-
-function loadTemplates(): SavedTemplate[] {
-  if (typeof window === "undefined") return [];
+async function fetchTemplates(): Promise<SavedTemplate[]> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const res = await fetch("/api/plantillas");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.plantillas || [];
   } catch { return []; }
 }
 
-function saveTemplates(templates: SavedTemplate[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+async function createTemplate(t: { name: string; primary: string; secondary: string; logoDataUrl: string | null }): Promise<SavedTemplate | null> {
+  try {
+    const res = await fetch("/api/plantillas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(t),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.plantilla;
+  } catch { return null; }
+}
+
+async function updateTemplate(id: string, updates: { name?: string; primary?: string; secondary?: string; logoDataUrl?: string | null }): Promise<SavedTemplate | null> {
+  try {
+    const res = await fetch(`/api/plantillas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.plantilla;
+  } catch { return null; }
+}
+
+async function deleteTemplate(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/plantillas/${id}`, { method: "DELETE" });
+    return res.ok;
+  } catch { return false; }
 }
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -234,7 +262,11 @@ export default function PlantillasPage() {
   const [editName, setEditName] = useState("");
   const [justUpdated, setJustUpdated] = useState(false);
 
-  useEffect(() => { setSaved(loadTemplates()); }, []);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  useEffect(() => {
+    fetchTemplates().then((t) => { setSaved(t); setLoadingTemplates(false); });
+  }, []);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -254,14 +286,15 @@ export default function PlantillasPage() {
     setShowColorPicker(false); setActiveTemplateId(null);
   };
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!saveName.trim()) return;
-    const t: SavedTemplate = {
-      id: crypto.randomUUID(), name: saveName.trim(), primary: colors.primary, secondary: colors.secondary,
-      logoDataUrl, createdAt: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }),
-    };
-    const updated = [...saved, t];
-    setSaved(updated); saveTemplates(updated); setActiveTemplateId(t.id);
+    const created = await createTemplate({
+      name: saveName.trim(), primary: colors.primary, secondary: colors.secondary, logoDataUrl,
+    });
+    if (created) {
+      setSaved((prev) => [...prev, created]);
+      setActiveTemplateId(created.id);
+    }
     setSaveName(""); setShowSaveInput(false); setJustSaved(true);
     setTimeout(() => setJustSaved(false), 2000);
   };
@@ -274,21 +307,24 @@ export default function PlantillasPage() {
     setActiveTemplateId(t.id);
   };
 
-  const handleDeleteTemplate = (id: string) => {
-    const updated = saved.filter((t) => t.id !== id);
-    setSaved(updated); saveTemplates(updated);
+  const handleDeleteTemplate = async (id: string) => {
+    await deleteTemplate(id);
+    setSaved((prev) => prev.filter((t) => t.id !== id));
     if (activeTemplateId === id) setActiveTemplateId(null);
     setDeleteConfirm(null);
   };
 
   const handleStartEdit = (t: SavedTemplate) => { setEditingId(t.id); setEditName(t.name); };
 
-  const handleUpdateTemplate = () => {
+  const handleUpdateTemplate = async () => {
     if (!editingId) return;
-    const updated = saved.map((t) =>
-      t.id === editingId ? { ...t, name: editName.trim() || t.name, primary: colors.primary, secondary: colors.secondary, logoDataUrl } : t
-    );
-    setSaved(updated); saveTemplates(updated); setEditingId(null); setEditName("");
+    const result = await updateTemplate(editingId, {
+      name: editName.trim() || undefined, primary: colors.primary, secondary: colors.secondary, logoDataUrl,
+    });
+    if (result) {
+      setSaved((prev) => prev.map((t) => t.id === editingId ? result : t));
+    }
+    setEditingId(null); setEditName("");
     setJustUpdated(true); setTimeout(() => setJustUpdated(false), 2000);
   };
 

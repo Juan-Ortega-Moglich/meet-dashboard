@@ -49,7 +49,6 @@ interface SavedTemplate {
 
 // --- Constants ---
 
-const PLANTILLAS_KEY = "plantillas-minutas";
 const HOST_TABS = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest"];
 const TEMPLATE_WIDTH = 794;
 
@@ -64,12 +63,13 @@ const DEFAULT_TEMPLATE: SavedTemplate = {
 
 // --- Helpers ---
 
-function loadFirstTemplate(): SavedTemplate {
-  if (typeof window === "undefined") return DEFAULT_TEMPLATE;
+async function loadFirstTemplate(): Promise<SavedTemplate> {
   try {
-    const raw = localStorage.getItem(PLANTILLAS_KEY);
-    const templates: SavedTemplate[] = raw ? JSON.parse(raw) : [];
-    return templates[0] || DEFAULT_TEMPLATE;
+    const res = await fetch("/api/plantillas");
+    if (!res.ok) return DEFAULT_TEMPLATE;
+    const data = await res.json();
+    const plantillas = data.plantillas || [];
+    return plantillas[0] || DEFAULT_TEMPLATE;
   } catch {
     return DEFAULT_TEMPLATE;
   }
@@ -510,7 +510,7 @@ function AutoMinutasSection() {
   }, [selectedTab]);
 
   useEffect(() => {
-    setTemplate(loadFirstTemplate());
+    loadFirstTemplate().then(setTemplate);
   }, []);
 
   useEffect(() => {

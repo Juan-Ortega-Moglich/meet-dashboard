@@ -32,13 +32,12 @@ interface SavedTemplate {
   createdAt: string;
 }
 
-const PLANTILLAS_KEY = "plantillas-minutas";
-
-function loadSavedTemplates(): SavedTemplate[] {
-  if (typeof window === "undefined") return [];
+async function loadSavedTemplates(): Promise<SavedTemplate[]> {
   try {
-    const raw = localStorage.getItem(PLANTILLAS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const res = await fetch("/api/plantillas");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.plantillas || [];
   } catch {
     return [];
   }
@@ -528,7 +527,7 @@ function TemplateSelectModal({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
-    setTemplates(loadSavedTemplates());
+    loadSavedTemplates().then(setTemplates);
   }, []);
 
   const selected = templates.find((t) => t.id === selectedId);
