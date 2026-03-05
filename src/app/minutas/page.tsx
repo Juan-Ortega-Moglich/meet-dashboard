@@ -63,18 +63,6 @@ const DEFAULT_TEMPLATE: SavedTemplate = {
 
 // --- Helpers ---
 
-async function loadFirstTemplate(): Promise<SavedTemplate> {
-  try {
-    const res = await fetch("/api/plantillas");
-    if (!res.ok) return DEFAULT_TEMPLATE;
-    const data = await res.json();
-    const plantillas = data.plantillas || [];
-    return plantillas[0] || DEFAULT_TEMPLATE;
-  } catch {
-    return DEFAULT_TEMPLATE;
-  }
-}
-
 function formatDate(dateStr: string): string {
   try {
     return new Date(dateStr).toLocaleDateString("es-MX", {
@@ -485,12 +473,32 @@ function AutoMinutaModal({
 
 // --- Auto Minutas Section ---
 
+async function fetchAllTemplates(): Promise<SavedTemplate[]> {
+  try {
+    const res = await fetch("/api/plantillas");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.plantillas || [];
+  } catch {
+    return [];
+  }
+}
+
+function getTemplateForHost(host: string, templates: SavedTemplate[]): SavedTemplate {
+  const hostLower = host.toLowerCase();
+  const match = templates.find((t) => t.name.toLowerCase() === hostLower);
+  if (match) return match;
+  const moglich = templates.find((t) => t.name.toLowerCase().includes("möglich") || t.name.toLowerCase().includes("moglich"));
+  if (moglich) return moglich;
+  return templates[0] || DEFAULT_TEMPLATE;
+}
+
 function AutoMinutasSection() {
   const [minutas, setMinutas] = useState<AutoMinuta[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("Todos");
   const [selectedMinuta, setSelectedMinuta] = useState<AutoMinuta | null>(null);
-  const [template, setTemplate] = useState<SavedTemplate>(DEFAULT_TEMPLATE);
+  const [allTemplates, setAllTemplates] = useState<SavedTemplate[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
 
   const fetchMinutas = useCallback(async () => {
@@ -510,7 +518,7 @@ function AutoMinutasSection() {
   }, [selectedTab]);
 
   useEffect(() => {
-    loadFirstTemplate().then(setTemplate);
+    fetchAllTemplates().then(setAllTemplates);
   }, []);
 
   useEffect(() => {
@@ -661,7 +669,7 @@ function AutoMinutasSection() {
       {selectedMinuta && selectedMinuta.minuta_data && (
         <AutoMinutaModal
           autoMinuta={selectedMinuta}
-          template={template}
+          template={getTemplateForHost(selectedMinuta.host, allTemplates)}
           onClose={() => setSelectedMinuta(null)}
           onSaved={fetchMinutas}
           onRetry={handleRetry}
