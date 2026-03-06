@@ -49,7 +49,6 @@ export async function createBot(params: CreateBotParams) {
             },
           },
         },
-        video_mixed_mp4: {},
       },
       automatic_leave: {
         silence_detection: {
