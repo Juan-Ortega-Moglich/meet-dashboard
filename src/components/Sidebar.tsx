@@ -12,8 +12,11 @@ import {
   ChevronRight,
   Menu,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useTheme } from "@/components/ThemeProvider";
 
 const menuItems = [
   {
@@ -47,6 +50,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     setMobileOpen(false);
@@ -155,8 +159,28 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-4 border-t border-white/10">
+        <div className="px-4 py-4 border-t border-white/10 flex items-center justify-between">
           <p className={`text-xs text-gray-500 ${collapsed ? "md:hidden" : ""}`}>v1.0.0</p>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+          >
+            <span className="relative block w-5 h-5">
+              <Sun
+                size={20}
+                className={`absolute inset-0 text-yellow-400 transition-all duration-300 ${
+                  theme === "dark" ? "opacity-0 rotate-90 scale-0" : "opacity-100 rotate-0 scale-100"
+                }`}
+              />
+              <Moon
+                size={20}
+                className={`absolute inset-0 text-blue-300 transition-all duration-300 ${
+                  theme === "dark" ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-0"
+                }`}
+              />
+            </span>
+          </button>
         </div>
       </aside>
     </>

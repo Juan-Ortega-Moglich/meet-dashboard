@@ -175,8 +175,8 @@ function HostSidebar({
   return (
     <div className="w-full md:w-56 shrink-0">
       <div className="flex items-center gap-2 mb-3 px-1">
-        <Users size={15} className="text-gray-400" />
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Anfitriones</h3>
+        <Users size={15} className="text-gray-400 dark:text-gray-400" />
+        <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider">Anfitriones</h3>
       </div>
       <nav className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
         {allOptions.map((host) => {
@@ -188,7 +188,7 @@ function HostSidebar({
               className={`whitespace-nowrap text-left px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
                 isActive
                   ? "text-white shadow-md"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200 md:border-0 md:bg-transparent"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 md:border-0 md:bg-transparent"
               }`}
               style={
                 isActive
@@ -209,9 +209,9 @@ function HostSidebar({
 function EditableField({ label, value, onChange, rows = 1 }: { label: string; value: string; onChange: (v: string) => void; rows?: number }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{label}</label>
       <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows}
-        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-y leading-relaxed" />
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all resize-y leading-relaxed" />
     </div>
   );
 }
@@ -325,17 +325,17 @@ function MinutaModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={handleClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-[900px] max-h-[90vh] flex flex-col"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-[900px] max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800 shrink-0">
           <div className="flex items-center gap-3">
             <Sparkles size={18} className="text-[#2055e4]" />
-            <h3 className="font-semibold text-gray-900">Minuta generada</h3>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Minuta generada</h3>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800">
               <div className="w-3 h-3 rounded shrink-0" style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }} />
-              <span className="text-xs font-medium text-gray-600">{template.name}</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{template.name}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -344,7 +344,7 @@ function MinutaModal({
               className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 editing
                   ? "bg-amber-50 text-amber-700 border border-amber-200"
-                  : "border border-gray-200 text-gray-700 hover:bg-gray-50"
+                  : "border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
             >
               <Pencil size={14} />
@@ -373,13 +373,13 @@ function MinutaModal({
               <button
                 onClick={handleSaveToDrive}
                 disabled={uploading || editing}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
               >
                 {uploading ? <Loader2 size={14} className="animate-spin" /> : <CloudUpload size={14} />}
                 {uploading ? "Guardando..." : "Guardar en Drive"}
               </button>
             )}
-            <button onClick={handleClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+            <button onClick={handleClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -387,7 +387,7 @@ function MinutaModal({
 
         {/* Upload error */}
         {uploadError && (
-          <div className="mx-5 mt-3 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+          <div className="mx-5 mt-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
             {uploadError}
           </div>
         )}
@@ -402,20 +402,20 @@ function MinutaModal({
                 <EditableField label="Asistentes" value={data.asistentes} onChange={(v) => updateField("asistentes", v)} rows={2} />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Participación</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Participación</label>
                 <div className="space-y-2">
                   {data.participacion.map((p, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <input value={p.name} onChange={(e) => {
                         const list = [...data.participacion]; list[i] = { ...list[i], name: e.target.value };
                         setData((prev) => ({ ...prev, participacion: list }));
-                      }} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" placeholder="Nombre" />
+                      }} className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" placeholder="Nombre" />
                       <div className="flex items-center gap-1">
                         <input type="number" value={p.pct} onChange={(e) => {
                           const list = [...data.participacion]; list[i] = { ...list[i], pct: Number(e.target.value) };
                           setData((prev) => ({ ...prev, participacion: list }));
-                        }} className="w-16 px-2 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 text-center focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
-                        <span className="text-xs text-gray-400">%</span>
+                        }} className="w-16 px-2 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 text-center focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
+                        <span className="text-xs text-gray-400 dark:text-gray-400">%</span>
                       </div>
                     </div>
                   ))}
@@ -424,25 +424,25 @@ function MinutaModal({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Orden del día</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Orden del día</label>
                 <div className="space-y-2">
                   {data.ordenDelDia.map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 w-4 shrink-0">{i + 1}.</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-400 w-4 shrink-0">{i + 1}.</span>
                       <input value={item} onChange={(e) => updateListItem("ordenDelDia", i, e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
+                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
                     </div>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Pendientes</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Pendientes</label>
                 <div className="space-y-2">
                   {data.pendientes.map((item, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400 shrink-0">—</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-400 shrink-0">—</span>
                       <input value={item} onChange={(e) => updateListItem("pendientes", i, e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
+                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
                     </div>
                   ))}
                 </div>
@@ -534,14 +534,14 @@ function TemplateSelectModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <LayoutTemplate size={18} className="text-[#2055e4]" />
-            <h3 className="font-semibold text-gray-900">Seleccionar plantilla</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Seleccionar plantilla</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -550,9 +550,9 @@ function TemplateSelectModal({
         <div className="p-5 flex-1 overflow-y-auto max-h-80">
           {templates.length === 0 ? (
             <div className="text-center py-8">
-              <LayoutTemplate size={32} className="text-gray-300 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-500">No hay plantillas guardadas</p>
-              <p className="text-xs text-gray-400 mt-1">Crea una plantilla en la sección de Plantillas</p>
+              <LayoutTemplate size={32} className="text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No hay plantillas guardadas</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Crea una plantilla en la sección de Plantillas</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -564,14 +564,14 @@ function TemplateSelectModal({
                     onClick={() => setSelectedId(t.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left ${
                       isSelected
-                        ? "border-[#2055e4] bg-blue-50/50 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        ? "border-[#2055e4] bg-blue-50/50 dark:bg-blue-900/30 shadow-sm"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
                     <div className="w-8 h-8 rounded-lg shrink-0" style={{ background: `linear-gradient(135deg, ${t.primary}, ${t.secondary})` }} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{t.name}</p>
-                      <p className="text-[11px] text-gray-400">{t.createdAt}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{t.name}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">{t.createdAt}</p>
                     </div>
                     {t.logoDataUrl && <img src={t.logoDataUrl} alt="" className="h-6 w-auto object-contain opacity-50" />}
                     {isSelected && (
@@ -588,8 +588,8 @@ function TemplateSelectModal({
 
         {/* Footer */}
         {templates.length > 0 && (
-          <div className="p-5 border-t border-gray-100 flex gap-3">
-            <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <div className="p-5 border-t border-gray-100 dark:border-gray-800 flex gap-3">
+            <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               Cancelar
             </button>
             <button
@@ -655,10 +655,10 @@ function RecordingCard({
 
   return (
     <div
-      className={`bg-white rounded-2xl border transition-all duration-200 ${
+      className={`bg-white dark:bg-gray-900 rounded-2xl border transition-all duration-200 ${
         isExpanded
           ? "border-[#2055e4]/20 shadow-xl ring-1 ring-[#2055e4]/10"
-          : "border-gray-200 hover:shadow-md hover:border-gray-300"
+          : "border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600"
       }`}
     >
       {/* Card header */}
@@ -676,32 +676,32 @@ function RecordingCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 truncate group-hover:text-[#2055e4] transition-colors">
+          <p className="font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-[#2055e4] transition-colors">
             {recording.title}
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <Calendar size={11} />
               {formatDate(recording.date)}
             </span>
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <Clock size={11} />
               {recording.duration}
             </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-gray-100 text-gray-500">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
               {recording.platform}
             </span>
           </div>
         </div>
 
-        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-[#2055e4] border border-blue-100">
+        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-[#2055e4] border border-blue-100 dark:border-blue-800">
           <User size={12} />
           {recording.host}
         </span>
 
         <div
           className={`shrink-0 p-1 rounded-lg transition-colors ${
-            isExpanded ? "bg-blue-50 text-[#2055e4]" : "text-gray-400 group-hover:text-gray-600"
+            isExpanded ? "bg-blue-50 dark:bg-blue-900/30 text-[#2055e4]" : "text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300"
           }`}
         >
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -710,9 +710,9 @@ function RecordingCard({
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="px-4 pb-5 md:px-5 md:pb-6 border-t border-gray-100">
+        <div className="px-4 pb-5 md:px-5 md:pb-6 border-t border-gray-100 dark:border-gray-800">
           <div className="sm:hidden mt-3 mb-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-[#2055e4] border border-blue-100">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-[#2055e4] border border-blue-100 dark:border-blue-800">
               <User size={12} />
               {recording.host}
             </span>
@@ -735,7 +735,7 @@ function RecordingCard({
             {recording.transcript.length > 0 && (
               <button
                 onClick={() => downloadTranscript(recording)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all"
               >
                 <Download size={15} />
                 Descargar transcripción
@@ -757,7 +757,7 @@ function RecordingCard({
                 disabled={generatingMinuta}
                 className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
                   minuta
-                    ? "border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                    ? "border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                     : "text-white hover:opacity-90 hover:shadow-lg"
                 }`}
                 style={!minuta ? { background: "linear-gradient(135deg, #10b981, #059669)" } : undefined}
@@ -779,7 +779,7 @@ function RecordingCard({
 
           {/* Minuta error */}
           {minutaError && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400">
               {minutaError}
             </div>
           )}
@@ -808,17 +808,17 @@ function RecordingCard({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <FileText size={15} className="text-[#2055e4]" />
-                <h4 className="text-sm font-semibold text-gray-900">Transcripción</h4>
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Transcripción</h4>
               </div>
-              <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl border border-gray-100 p-4 md:p-5 space-y-3 max-h-72 overflow-y-auto">
+              <div className="bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 md:p-5 space-y-3 max-h-72 overflow-y-auto">
                 {recording.transcript.map((block, idx) => (
-                  <div key={idx} className="flex gap-3 text-sm group/line hover:bg-blue-50/50 -mx-2 px-2 py-1.5 rounded-lg transition-colors">
-                    <span className="shrink-0 font-mono text-xs text-[#2055e4] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md h-fit mt-0.5">
+                  <div key={idx} className="flex gap-3 text-sm group/line hover:bg-blue-50/50 dark:hover:bg-blue-900/20 -mx-2 px-2 py-1.5 rounded-lg transition-colors">
+                    <span className="shrink-0 font-mono text-xs text-[#2055e4] bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded-md h-fit mt-0.5">
                       {block.timestamp}
                     </span>
                     <div className="leading-relaxed">
-                      <span className="font-semibold text-gray-800">{block.speaker}: </span>
-                      <span className="text-gray-600">{block.text}</span>
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">{block.speaker}: </span>
+                      <span className="text-gray-600 dark:text-gray-400">{block.text}</span>
                     </div>
                   </div>
                 ))}
@@ -827,9 +827,9 @@ function RecordingCard({
           )}
 
           {recording.transcript.length === 0 && (
-            <div className="mt-4 p-6 rounded-xl bg-gray-50 text-center">
-              <FileText size={24} className="text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">Transcripción no disponible</p>
+            <div className="mt-4 p-6 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
+              <FileText size={24} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">Transcripción no disponible</p>
             </div>
           )}
         </div>
@@ -891,11 +891,11 @@ export default function GrabacionesPage() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-5">
           <Video size={18} className="text-[#2055e4]" />
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {selectedHost === "Todos" ? "Todas las grabaciones" : `Grabaciones de ${selectedHost}`}
           </h2>
           {!loading && (
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-[#2055e4] text-xs font-semibold">
               {recordings.length}
             </span>
           )}
@@ -906,16 +906,16 @@ export default function GrabacionesPage() {
             <Loader2 size={24} className="animate-spin text-[#2055e4]" />
           </div>
         ) : recordings.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-100 mb-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 mb-4">
               <Video size={24} className="text-gray-400" />
             </div>
-            <p className="text-sm text-gray-500 font-medium">
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
               {selectedHost === "Todos"
                 ? "No hay grabaciones registradas"
                 : `No hay grabaciones para ${selectedHost}`}
             </p>
-            <p className="text-xs text-gray-400 mt-1">Las grabaciones aparecerán aquí cuando se completen</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Las grabaciones aparecerán aquí cuando se completen</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">

@@ -374,25 +374,25 @@ export default function PlantillasPage() {
             <LayoutTemplate size={24} />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[#212529]">Plantillas</h1>
-            <p className="text-sm text-gray-400">Personaliza el diseño de tus documentos</p>
+            <h1 className="text-xl md:text-2xl font-bold text-[#212529] dark:text-gray-100">Plantillas</h1>
+            <p className="text-sm text-gray-400 dark:text-gray-400">Personaliza el diseño de tus documentos</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
-          <button onClick={() => setActiveTab("minutas")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "minutas" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+          <button onClick={() => setActiveTab("minutas")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "minutas" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}>
             <FileText size={16} /> Minutas
           </button>
-          <button onClick={() => setActiveTab("perfil")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "perfil" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+          <button onClick={() => setActiveTab("perfil")} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "perfil" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"}`}>
             <UserCircle size={16} /> Perfil de Cliente
           </button>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
         <div className="flex flex-wrap items-center gap-3">
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             {logoUrl ? <ImageIcon size={16} /> : <Upload size={16} />}
             {logoUrl ? "Cambiar Logo" : "Subir Logo"}
           </button>
@@ -401,21 +401,21 @@ export default function PlantillasPage() {
               <X size={14} /> Quitar
             </button>
           )}
-          <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
-          <Palette size={16} className="text-gray-400" />
+          <div className="w-px h-7 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block" />
+          <Palette size={16} className="text-gray-400 dark:text-gray-400" />
           {colorPresets.map((preset) => (
             <button key={preset.name} onClick={() => handlePresetSelect(preset)} title={preset.name}
-              className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${colors.primary === preset.primary && !activeTemplateId ? "border-gray-900 scale-110 shadow-md" : "border-white shadow-sm"}`}
+              className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${colors.primary === preset.primary && !activeTemplateId ? "border-gray-900 dark:border-gray-100 scale-110 shadow-md" : "border-white dark:border-gray-700 shadow-sm"}`}
               style={{ background: `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})` }} />
           ))}
-          <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
+          <div className="w-px h-7 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block" />
           <button onClick={() => setShowColorPicker(!showColorPicker)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${showColorPicker ? "border-gray-900 bg-gray-50 text-gray-900" : "border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${showColorPicker ? "border-gray-900 dark:border-gray-100 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}>
             <Palette size={16} /> Personalizado
           </button>
-          <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
+          <div className="w-px h-7 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block" />
           {!showSaveInput ? (
-            <button onClick={() => setShowSaveInput(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <button onClick={() => setShowSaveInput(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               {justSaved ? <Check size={16} className="text-green-500" /> : <Save size={16} />}
               {justSaved ? "Guardada" : "Guardar"}
             </button>
@@ -423,16 +423,16 @@ export default function PlantillasPage() {
             <div className="flex items-center gap-2">
               <input type="text" value={saveName} onChange={(e) => setSaveName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSaveTemplate(); if (e.key === "Escape") setShowSaveInput(false); }}
-                placeholder="Nombre de la plantilla..." className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 w-52" autoFocus />
+                placeholder="Nombre de la plantilla..." className="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-500 focus:border-blue-400 dark:focus:border-blue-500 w-52" autoFocus />
               <button onClick={handleSaveTemplate} disabled={!saveName.trim()}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
                 style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}>
                 <Save size={14} /> Guardar
               </button>
-              <button onClick={() => { setShowSaveInput(false); setSaveName(""); }} className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"><X size={16} /></button>
+              <button onClick={() => { setShowSaveInput(false); setSaveName(""); }} className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"><X size={16} /></button>
             </div>
           )}
-          <div className="w-px h-7 bg-gray-200 mx-1 hidden sm:block" />
+          <div className="w-px h-7 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block" />
           <button onClick={handleDownloadPDF} disabled={downloading}
             className="flex items-center gap-2 px-5 py-2 text-white text-sm font-medium rounded-xl transition-all hover:opacity-90 disabled:opacity-60"
             style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}>
@@ -441,19 +441,19 @@ export default function PlantillasPage() {
           </button>
         </div>
         {showColorPicker && (
-          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-end gap-4">
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-end gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Primario</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Primario</label>
               <div className="flex items-center gap-2">
-                <input type="color" value={customPrimary} onChange={(e) => setCustomPrimary(e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer" />
-                <input type="text" value={customPrimary} onChange={(e) => setCustomPrimary(e.target.value)} className="w-24 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 font-mono" />
+                <input type="color" value={customPrimary} onChange={(e) => setCustomPrimary(e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer" />
+                <input type="text" value={customPrimary} onChange={(e) => setCustomPrimary(e.target.value)} className="w-24 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 dark:bg-gray-800 font-mono" />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Secundario</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">Secundario</label>
               <div className="flex items-center gap-2">
-                <input type="color" value={customSecondary} onChange={(e) => setCustomSecondary(e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer" />
-                <input type="text" value={customSecondary} onChange={(e) => setCustomSecondary(e.target.value)} className="w-24 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 font-mono" />
+                <input type="color" value={customSecondary} onChange={(e) => setCustomSecondary(e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer" />
+                <input type="text" value={customSecondary} onChange={(e) => setCustomSecondary(e.target.value)} className="w-24 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 dark:bg-gray-800 font-mono" />
               </div>
             </div>
             <button onClick={applyCustomColors} className="px-5 py-2.5 rounded-xl text-sm font-medium text-white hover:opacity-90"
@@ -465,38 +465,38 @@ export default function PlantillasPage() {
       {/* Saved templates list */}
       {saved.length > 0 && (
         <div className="mb-6">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Mis plantillas guardadas</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-3">Mis plantillas guardadas</p>
           <div className="flex flex-wrap gap-3">
             {saved.map((t) => {
               const isActive = activeTemplateId === t.id;
               const isEditing = editingId === t.id;
               return (
                 <div key={t.id}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${isActive ? "border-gray-900 shadow-md bg-white" : "border-gray-200 bg-white hover:border-gray-300"}`}
+                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${isActive ? "border-gray-900 dark:border-gray-100 shadow-md bg-white dark:bg-gray-900" : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600"}`}
                   onClick={() => { if (!isEditing) handleLoadTemplate(t); }}>
                   <div className="w-8 h-8 rounded-lg shrink-0" style={{ background: `linear-gradient(135deg, ${t.primary}, ${t.secondary})` }} />
                   {isEditing ? (
                     <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") handleUpdateTemplate(); if (e.key === "Escape") setEditingId(null); }}
-                      onClick={(e) => e.stopPropagation()} className="px-2 py-1 rounded-lg border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 w-40" autoFocus />
+                      onClick={(e) => e.stopPropagation()} className="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-900 dark:text-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-500 focus:border-blue-400 dark:focus:border-blue-500 w-40" autoFocus />
                   ) : (
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{t.name}</p>
-                      <p className="text-[11px] text-gray-400">{t.createdAt}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{t.name}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-400">{t.createdAt}</p>
                     </div>
                   )}
                   {t.logoDataUrl && !isEditing && <img src={t.logoDataUrl} alt="" className="h-6 w-auto object-contain opacity-50 ml-1" />}
                   {isEditing ? (
                     <div className="flex items-center gap-1 ml-1" onClick={(e) => e.stopPropagation()}>
                       <button onClick={handleUpdateTemplate} className="p-1.5 rounded-lg text-white transition-colors" style={{ background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})` }}><Check size={14} /></button>
-                      <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"><X size={14} /></button>
+                      <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><X size={14} /></button>
                     </div>
                   ) : isActive ? (
                     <div className="flex items-center gap-1 ml-1" onClick={(e) => e.stopPropagation()}>
                       {justUpdated ? (
                         <span className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600"><Check size={14} /> Guardada</span>
                       ) : (
-                        <button onClick={() => handleStartEdit(t)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"><Pencil size={13} /> Editar</button>
+                        <button onClick={() => handleStartEdit(t)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"><Pencil size={13} /> Editar</button>
                       )}
                       <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
                     </div>
@@ -514,14 +514,14 @@ export default function PlantillasPage() {
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setDeleteConfirm(null)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 rounded-xl bg-red-50"><Trash2 size={20} className="text-red-500" /></div>
-              <h3 className="text-lg font-bold text-gray-900">Eliminar plantilla</h3>
+              <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/30"><Trash2 size={20} className="text-red-500" /></div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Eliminar plantilla</h3>
             </div>
-            <p className="text-sm text-gray-500 mb-6">Se eliminará permanentemente &quot;{saved.find((t) => t.id === deleteConfirm)?.name}&quot;.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Se eliminará permanentemente &quot;{saved.find((t) => t.id === deleteConfirm)?.name}&quot;.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancelar</button>
               <button onClick={() => handleDeleteTemplate(deleteConfirm)} className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}>Eliminar</button>
             </div>
           </div>

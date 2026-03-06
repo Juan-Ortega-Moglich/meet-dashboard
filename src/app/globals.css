@@ -1,10 +1,19 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f5f7fb;
   --foreground: #212529;
   --primary: #2055e4;
   --primary-light: #5980ff;
+}
+
+.dark {
+  --background: #111827;
+  --foreground: #f3f4f6;
+  --primary: #3b82f6;
+  --primary-light: #60a5fa;
 }
 
 @theme inline {
@@ -20,6 +29,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   min-height: 100vh;
+}
+
+.dark body {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 30%, #1a2332 60%, #0f172a 100%);
 }
 
 @keyframes float {

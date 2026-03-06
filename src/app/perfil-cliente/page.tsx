@@ -66,7 +66,7 @@ export default function PerfilClientePage() {
         <div className="p-2 rounded-lg text-white shrink-0" style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}>
           <UserCircle size={24} />
         </div>
-        <h1 className="text-xl md:text-2xl font-bold text-[#212529]">
+        <h1 className="text-xl md:text-2xl font-bold text-[#212529] dark:text-gray-100">
           Perfil de Cliente
         </h1>
       </div>

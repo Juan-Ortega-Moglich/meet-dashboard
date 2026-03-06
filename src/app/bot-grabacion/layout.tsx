@@ -28,10 +28,10 @@ export default function BotGrabacionLayout({
             <Bot size={24} />
           </div>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-[#212529]">
+            <h1 className="text-xl md:text-2xl font-bold text-[#212529] dark:text-gray-100">
               Bot de Grabación
             </h1>
-            <p className="text-xs md:text-sm text-gray-500">
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
               Gestiona reuniones y graba automáticamente por anfitrión
             </p>
           </div>
@@ -54,7 +54,7 @@ export default function BotGrabacionLayout({
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? "text-white shadow-md"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
               style={
                 isActive

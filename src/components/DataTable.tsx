@@ -52,7 +52,7 @@ export default function DataTable({ columns, data, onRefresh, extraActions }: Da
             placeholder="Buscar..."
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2055e4] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2055e4] focus:border-transparent"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -71,21 +71,21 @@ export default function DataTable({ columns, data, onRefresh, extraActions }: Da
       {/* Mobile card view */}
       <div className="md:hidden space-y-3">
         {paged.length === 0 ? (
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-white/50 p-6 text-center text-gray-400">
+          <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl border border-white/50 dark:border-gray-700 p-6 text-center text-gray-400">
             No se encontraron resultados
           </div>
         ) : (
           paged.map((row, i) => (
             <div
               key={i}
-              className="bg-white/70 backdrop-blur-sm rounded-xl border border-white/50 p-4 space-y-2"
+              className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl border border-white/50 dark:border-gray-700 p-4 space-y-2"
             >
               {columns.map((col) => (
                 <div key={col.key} className="flex justify-between items-center gap-2">
-                  <span className="text-xs font-semibold text-gray-500 uppercase shrink-0">
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase shrink-0">
                     {col.label}
                   </span>
-                  <span className="text-sm text-gray-700 text-right">
+                  <span className="text-sm text-gray-700 dark:text-gray-300 text-right">
                     {col.render ? col.render(row[col.key], row) : row[col.key]}
                   </span>
                 </div>
@@ -96,15 +96,15 @@ export default function DataTable({ columns, data, onRefresh, extraActions }: Da
       </div>
 
       {/* Desktop table view */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+              <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 {columns.map((col) => (
                   <th
                     key={col.key}
-                    className="text-left px-4 py-3 font-semibold text-gray-600 whitespace-nowrap"
+                    className="text-left px-4 py-3 font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap"
                   >
                     {col.label}
                   </th>
@@ -125,12 +125,12 @@ export default function DataTable({ columns, data, onRefresh, extraActions }: Da
                 paged.map((row, i) => (
                   <tr
                     key={i}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     {columns.map((col) => (
                       <td
                         key={col.key}
-                        className="px-4 py-3 text-gray-700 whitespace-nowrap"
+                        className="px-4 py-3 text-gray-700 dark:text-gray-300 whitespace-nowrap"
                       >
                         {col.render ? col.render(row[col.key], row) : row[col.key]}
                       </td>
@@ -156,14 +156,14 @@ export default function DataTable({ columns, data, onRefresh, extraActions }: Da
             <button
               onClick={() => setPage(0)}
               disabled={safePage === 0}
-              className="px-2 py-1 text-xs rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-2 py-1 text-xs rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Primera
             </button>
             <button
               onClick={() => setPage(safePage - 1)}
               disabled={safePage === 0}
-              className="p-1.5 rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={16} />
             </button>
@@ -194,7 +194,7 @@ export default function DataTable({ columns, data, onRefresh, extraActions }: Da
                     className={`w-8 h-8 text-xs rounded-md transition-colors ${
                       item === safePage
                         ? "bg-[#2055e4] text-white font-bold"
-                        : "text-gray-600 hover:bg-gray-100"
+                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     }`}
                   >
                     {item + 1}
@@ -205,14 +205,14 @@ export default function DataTable({ columns, data, onRefresh, extraActions }: Da
             <button
               onClick={() => setPage(safePage + 1)}
               disabled={safePage >= totalPages - 1}
-              className="p-1.5 rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={16} />
             </button>
             <button
               onClick={() => setPage(totalPages - 1)}
               disabled={safePage >= totalPages - 1}
-              className="px-2 py-1 text-xs rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-2 py-1 text-xs rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Última
             </button>

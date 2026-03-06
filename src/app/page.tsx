@@ -35,7 +35,7 @@ export default function Home() {
         <h1 className="text-2xl md:text-4xl font-extrabold shimmer-text mb-2 md:mb-3">
           Bienvenido al Dashboard
         </h1>
-        <p className="text-gray-500 text-sm md:text-lg">
+        <p className="text-gray-500 dark:text-gray-400 text-sm md:text-lg">
           Selecciona una sección para comenzar
         </p>
       </div>
@@ -47,7 +47,7 @@ export default function Home() {
             <Link
               key={card.href}
               href={card.href}
-              className="card-hover relative overflow-hidden bg-white/70 backdrop-blur-sm rounded-2xl border border-[rgba(32,85,228,0.1)] p-5 md:p-7 hover:shadow-xl hover:shadow-[rgba(32,85,228,0.1)] transition-all duration-300 group active:scale-[0.98]"
+              className="card-hover relative overflow-hidden bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-2xl border border-[rgba(32,85,228,0.1)] dark:border-gray-700 p-5 md:p-7 hover:shadow-xl hover:shadow-[rgba(32,85,228,0.1)] transition-all duration-300 group active:scale-[0.98]"
             >
               {/* Decorative gradient blob */}
               <div
@@ -63,10 +63,10 @@ export default function Home() {
                   <Icon size={24} className="md:w-7 md:h-7" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-base md:text-xl font-bold text-[#212529] group-hover:text-[#2055e4] transition-colors">
+                  <h2 className="text-base md:text-xl font-bold text-[#212529] dark:text-gray-100 group-hover:text-[#2055e4] transition-colors">
                     {card.title}
                   </h2>
-                  <p className="text-xs md:text-sm text-[#6c757d] mt-1 md:mt-2 leading-relaxed">
+                  <p className="text-xs md:text-sm text-[#6c757d] dark:text-gray-400 mt-1 md:mt-2 leading-relaxed">
                     {card.description}
                   </p>
                   <span className="inline-block mt-2 md:mt-3 text-xs font-semibold text-[#2055e4] md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">

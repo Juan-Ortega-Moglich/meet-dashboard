@@ -69,7 +69,7 @@ export default function NumerosTelefonoPage() {
         <div className="p-2 rounded-lg text-white shrink-0" style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}>
           <Phone size={24} />
         </div>
-        <h1 className="text-xl md:text-2xl font-bold text-[#212529]">
+        <h1 className="text-xl md:text-2xl font-bold text-[#212529] dark:text-gray-100">
           Numeros de Telefono
         </h1>
       </div>
@@ -79,7 +79,7 @@ export default function NumerosTelefonoPage() {
           <Loader2 size={24} className="animate-spin text-[#2055e4]" />
         </div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-600 dark:text-red-400">
           {error}
         </div>
       ) : (

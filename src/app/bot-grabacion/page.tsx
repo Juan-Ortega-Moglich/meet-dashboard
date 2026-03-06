@@ -198,20 +198,20 @@ function BotStatusBadge({ status }: { status: BotStatus }) {
 
 function MeetingCard({ meeting }: { meeting: Meeting }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2 rounded-lg bg-blue-50 shrink-0">
+          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 shrink-0">
             <Video size={18} className="text-[#2055e4]" />
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-gray-900 truncate">{meeting.title}</p>
-            <p className="text-xs text-gray-500">{meeting.platform}</p>
+            <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{meeting.title}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{meeting.platform}</p>
           </div>
         </div>
         <BotStatusBadge status={meeting.botStatus} />
       </div>
-      <div className="flex items-center gap-2 text-sm text-gray-500">
+      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
         <Clock size={14} className="shrink-0" />
         <span>{meeting.time}</span>
       </div>
@@ -308,19 +308,19 @@ function CalendarMeetingCard({
       ? "border-yellow-200 shadow-md ring-1 ring-yellow-50"
       : isScheduled
         ? "border-blue-200 ring-1 ring-blue-50"
-        : "border-gray-200 hover:shadow-md";
+        : "border-gray-200 dark:border-gray-700 hover:shadow-md";
 
   return (
-    <div className={`bg-white rounded-xl border p-4 transition-all ${borderClass}`}>
+    <div className={`bg-white dark:bg-gray-900 rounded-xl border p-4 transition-all ${borderClass}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className={`p-2 rounded-lg shrink-0 ${isRecording ? "bg-green-50" : "bg-blue-50"}`}>
+          <div className={`p-2 rounded-lg shrink-0 ${isRecording ? "bg-green-50" : "bg-blue-50 dark:bg-blue-900/30"}`}>
             <Video size={18} className={isRecording ? "text-green-600" : "text-[#2055e4]"} />
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-gray-900 truncate">{event.summary}</p>
-            <p className="text-xs text-gray-500">
-              {event._host && <span className="font-medium text-gray-700">{event._host} · </span>}
+            <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{event.summary}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {event._host && <span className="font-medium text-gray-700 dark:text-gray-300">{event._host} · </span>}
               {event.meetLink?.includes("teams") ? "Microsoft Teams" : "Google Meet"}
             </p>
           </div>
@@ -328,7 +328,7 @@ function CalendarMeetingCard({
         {getBadge()}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Clock size={14} className="shrink-0" />
           <span>{formatEventTime(event.start)} - {formatEventTime(event.end)}</span>
         </div>
@@ -361,16 +361,16 @@ function ActiveBotCard({ bot, onLeave, leaving, showHost, meetingTime }: { bot: 
   const isScheduled = bot.status === "ready";
   const isActive = !["done", "fatal", "call_ended", "ready", "media_expired", "recording_done"].includes(bot.status);
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className={`p-2 rounded-lg shrink-0 ${isScheduled ? "bg-blue-50" : "bg-blue-50"}`}>
+          <div className={`p-2 rounded-lg shrink-0 ${isScheduled ? "bg-blue-50 dark:bg-blue-900/30" : "bg-blue-50 dark:bg-blue-900/30"}`}>
             <Bot size={18} className="text-[#2055e4]" />
           </div>
           <div className="min-w-0">
-            <p className="font-medium text-gray-900 truncate">{bot.meeting_title}</p>
-            <p className="text-xs text-gray-500 truncate">
-              {showHost && <span className="font-medium text-gray-700">{bot.host} · </span>}
+            <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{bot.meeting_title}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {showHost && <span className="font-medium text-gray-700 dark:text-gray-300">{bot.host} · </span>}
               {bot.meeting_url}
             </p>
           </div>
@@ -378,7 +378,7 @@ function ActiveBotCard({ bot, onLeave, leaving, showHost, meetingTime }: { bot: 
         <RecallBotBadge status={bot.status} />
       </div>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <Clock size={14} className="shrink-0" />
           <span>{time}</span>
         </div>
@@ -395,14 +395,14 @@ function ActiveBotCard({ bot, onLeave, leaving, showHost, meetingTime }: { bot: 
         )}
       </div>
       {confirming && (
-        <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-200">
+        <div className="mt-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
           <p className="text-xs text-red-700 font-medium mb-2">
             ¿Estás seguro de sacar el bot? Dejará de grabar.
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setConfirming(false)}
-              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               Cancelar
             </button>
@@ -504,31 +504,31 @@ function JoinBotModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg text-white" style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}>
               <Bot size={20} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">Unir Bot a Reunión</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Unir Bot a Reunión</h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-600">
             <X size={20} />
           </button>
         </div>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Pega el link de la reunión para que el bot se una y comience a grabar. El nombre se detecta automáticamente.
         </p>
         <div className="relative mb-3">
           <Link2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input type="url" value={link} onChange={(e) => handleLinkChange(e.target.value)} placeholder="https://meet.google.com/abc-defg-hij"
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
             autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleConfirm(); }} />
         </div>
         <div className="relative mb-5">
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder={fetchingTitle ? "Buscando nombre..." : "Nombre de la reunión (auto-detectado)"}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
           />
           {fetchingTitle && (
             <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#2055e4]" />
@@ -545,7 +545,7 @@ function JoinBotModal({
           </div>
         )}
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">Cancelar</button>
+          <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancelar</button>
           <button onClick={handleConfirm} disabled={!link.trim() || sending}
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
             style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}>
@@ -764,7 +764,7 @@ export default function BotGrabacionPage() {
               setTodayEvents([]);
               setUpcomingEvents([]);
             }}
-            className="w-full appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all cursor-pointer"
+            className="w-full appearance-none bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all cursor-pointer"
           >
             <option value="todos">Todos</option>
             {hosts.map((host) => (
@@ -788,12 +788,12 @@ export default function BotGrabacionPage() {
 
       {/* Connect Calendar prompt (for Google Calendar hosts not yet authorized) */}
       {!isTodos && isConnectedHost && calendarAuthorized === false && selectedHost.calendarType === "google" && (
-        <div className="mb-6 md:mb-8 bg-white rounded-2xl border border-blue-200 p-6 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 mb-4">
+        <div className="mb-6 md:mb-8 bg-white dark:bg-gray-900 rounded-2xl border border-blue-200 dark:border-blue-800 p-6 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 mb-4">
             <Calendar size={24} className="text-[#2055e4]" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-2">Conectar Calendario de {selectedHost.name}</h3>
-          <p className="text-sm text-gray-500 mb-4">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Conectar Calendario de {selectedHost.name}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Autoriza el acceso al calendario de Google para ver las reuniones y enviar bots automáticamente.
           </p>
           <a
@@ -811,11 +811,11 @@ export default function BotGrabacionPage() {
       <div className="mb-6 md:mb-8">
         <div className="flex items-center gap-2 mb-4">
           <Bot size={18} className="text-green-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Bots Activos</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Bots Activos</h2>
           <span className="ml-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">{liveActiveBots.length}</span>
         </div>
         {liveActiveBots.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
             <Bot size={24} className="text-gray-300 mx-auto mb-2" />
             <p className="text-sm text-gray-400">No hay bots activos en este momento</p>
           </div>
@@ -837,11 +837,11 @@ export default function BotGrabacionPage() {
             <div className="mb-6 md:mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <Calendar size={18} className="text-[#2055e4]" />
-                <h2 className="text-lg font-semibold text-gray-900">Reuniones de Hoy</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Reuniones de Hoy</h2>
                 <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">{todayEvents.length}</span>
               </div>
               {todayEvents.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
                   <p className="text-sm text-gray-400">No hay reuniones para hoy</p>
                 </div>
               ) : (
@@ -861,11 +861,11 @@ export default function BotGrabacionPage() {
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Calendar size={18} className="text-[#2055e4]" />
-            <h2 className="text-lg font-semibold text-gray-900">Reuniones de Hoy</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Reuniones de Hoy</h2>
             <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-[#2055e4] text-xs font-semibold">{mockData.meetingsToday.length}</span>
           </div>
           {mockData.meetingsToday.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
               <p className="text-sm text-gray-400">No hay reuniones para hoy</p>
             </div>
           ) : (
@@ -881,7 +881,7 @@ export default function BotGrabacionPage() {
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Clock size={18} className="text-blue-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Bots Programados</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Bots Programados</h2>
             <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">{scheduledBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -895,7 +895,7 @@ export default function BotGrabacionPage() {
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 size={18} className="text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900">Bots Finalizados</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Bots Finalizados</h2>
             <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{completedBots.length}</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -909,11 +909,11 @@ export default function BotGrabacionPage() {
         <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Clock size={18} className="text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900">Próximas Reuniones</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Próximas Reuniones</h2>
             <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{upcomingEvents.length}</span>
           </div>
           {upcomingEvents.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
               <p className="text-sm text-gray-400">No hay reuniones próximas</p>
             </div>
           ) : (
@@ -931,11 +931,11 @@ export default function BotGrabacionPage() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Clock size={18} className="text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900">Próximas Reuniones</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Próximas Reuniones</h2>
             <span className="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold">{mockData.upcomingMeetings.length}</span>
           </div>
           {mockData.upcomingMeetings.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
               <p className="text-sm text-gray-400">No hay reuniones próximas</p>
             </div>
           ) : (
