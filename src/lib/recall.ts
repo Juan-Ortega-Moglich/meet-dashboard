@@ -49,6 +49,7 @@ export async function createBot(params: CreateBotParams) {
             },
           },
         },
+        audio_mixed_mp3: {},
       },
       automatic_leave: {
         silence_detection: {
