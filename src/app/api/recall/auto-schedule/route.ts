@@ -38,6 +38,23 @@ async function getHostEvents(host: typeof HOSTS[0]): Promise<{ host: string; eve
   }
 }
 
+// Host priority: higher index = higher priority. When multiple hosts share the
+// same meeting link, only the highest-priority host gets a bot.
+const HOST_PRIORITY: Record<string, number> = {
+  Operaciones: 0,
+  Andres: 1,
+  Pablo: 2,
+  Rafa: 3,
+  Wisdom: 4,
+  Biofleming: 5,
+  Inbest: 6,
+};
+
+interface MeetingCandidate {
+  host: string;
+  event: CalendarEvent;
+}
+
 // POST /api/recall/auto-schedule — Schedule bots for all today's meetings with join_at
 export async function POST() {
   const now = new Date();
@@ -50,53 +67,83 @@ export async function POST() {
     .select("meeting_url, host")
     .gte("created_at", todayStart.toISOString());
 
-  const existingMeetings = new Set(
-    (todayBots || []).map((b) => `${b.host}::${b.meeting_url}`)
+  // Track which meeting URLs already have a bot (regardless of host)
+  const existingMeetingUrls = new Set(
+    (todayBots || []).map((b) => b.meeting_url)
   );
 
   // Fetch all hosts' events in parallel
   const results = await Promise.all(HOSTS.map(getHostEvents));
 
-  let scheduled = 0;
-  const details: string[] = [];
+  // Group all events by meetLink, keeping the highest-priority host per link
+  const meetingMap = new Map<string, MeetingCandidate>();
 
   for (const { host, events } of results) {
     for (const event of events) {
       if (!event.meetLink) continue;
 
-      const key = `${host}::${event.meetLink}`;
-      if (existingMeetings.has(key)) continue;
+      const existing = meetingMap.get(event.meetLink);
+      const currentPriority = HOST_PRIORITY[host] ?? -1;
+      const existingPriority = existing ? (HOST_PRIORITY[existing.host] ?? -1) : -1;
 
-      try {
-        const recallBot = await createBot({
-          meeting_url: event.meetLink,
-          bot_name: "Asistente Comercial",
-          join_at: event.start, // Recall will join at this exact time
-        }) as { id: string };
-
-        await supabase.from("recall_bots").insert({
-          recall_bot_id: recallBot.id,
-          meeting_url: event.meetLink,
-          bot_name: "Asistente Comercial",
-          host,
-          status: "ready",
-          meeting_title: event.summary || "Reunión",
-        });
-
-        existingMeetings.add(key);
-        scheduled++;
-        details.push(`${host}: ${event.summary} (${event.start})`);
-        console.log(`[Auto-Schedule] Scheduled bot for "${event.summary}" (${host}) at ${event.start}`);
-      } catch (err) {
-        console.error(`[Auto-Schedule] Failed for ${host}:`, err);
+      if (!existing || currentPriority > existingPriority) {
+        meetingMap.set(event.meetLink, { host, event });
       }
     }
+  }
+
+  let scheduled = 0;
+  const details: string[] = [];
+  const skippedDuplicates: string[] = [];
+
+  for (const [meetLink, { host, event }] of meetingMap) {
+    // Skip if a bot already exists for this meeting URL today
+    if (existingMeetingUrls.has(meetLink)) continue;
+
+    try {
+      const recallBot = await createBot({
+        meeting_url: meetLink,
+        bot_name: "Asistente Comercial",
+        join_at: event.start, // Recall will join at this exact time
+      }) as { id: string };
+
+      await supabase.from("recall_bots").insert({
+        recall_bot_id: recallBot.id,
+        meeting_url: meetLink,
+        bot_name: "Asistente Comercial",
+        host,
+        status: "ready",
+        meeting_title: event.summary || "Reunión",
+      });
+
+      existingMeetingUrls.add(meetLink);
+      scheduled++;
+      details.push(`${host}: ${event.summary} (${event.start})`);
+      console.log(`[Auto-Schedule] Scheduled bot for "${event.summary}" (${host}) at ${event.start}`);
+    } catch (err) {
+      console.error(`[Auto-Schedule] Failed for ${host}:`, err);
+    }
+  }
+
+  // Log deduplicated meetings for visibility
+  for (const { host, events } of results) {
+    for (const event of events) {
+      if (!event.meetLink) continue;
+      const winner = meetingMap.get(event.meetLink);
+      if (winner && winner.host !== host) {
+        skippedDuplicates.push(`${host}: "${event.summary}" → bot assigned to ${winner.host}`);
+      }
+    }
+  }
+  if (skippedDuplicates.length > 0) {
+    console.log(`[Auto-Schedule] Deduplicated meetings:\n${skippedDuplicates.join("\n")}`);
   }
 
   return NextResponse.json({
     ok: true,
     scheduled,
     details,
+    skippedDuplicates,
     timestamp: now.toISOString(),
   });
 }
