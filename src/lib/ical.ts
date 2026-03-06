@@ -100,6 +100,7 @@ export async function getIcsCalendarEvents(
       const description = current["DESCRIPTION"] || "";
       const uid = current["UID"] || Math.random().toString(36);
       const location = current["LOCATION"] || "";
+      const rrule = current["RRULE"] || "";
 
       const startDate = parseIcsDate(dtStart);
       const endDate = parseIcsDate(dtEnd);
@@ -120,6 +121,7 @@ export async function getIcsCalendarEvents(
           meetLink,
           organizer: host,
           status: "confirmed",
+          isWeeklyRecurring: rrule.toUpperCase().includes("FREQ=WEEKLY"),
         });
       }
 

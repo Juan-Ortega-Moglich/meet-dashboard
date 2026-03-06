@@ -222,6 +222,7 @@ export interface CalendarEvent {
   meetLink: string | null;
   organizer: string;
   status: string;
+  isWeeklyRecurring?: boolean;
 }
 
 export async function getCalendarEvents(
@@ -253,35 +254,57 @@ export async function getCalendarEvents(
 
   const data = await res.json();
 
-  return (data.items || [])
-    .filter((event: { status: string }) => event.status !== "cancelled")
-    .map((event: {
-      id: string;
-      summary?: string;
-      start?: { dateTime?: string; date?: string };
-      end?: { dateTime?: string; date?: string };
-      hangoutLink?: string;
-      conferenceData?: { entryPoints?: Array<{ entryPointType: string; uri: string }> };
-      organizer?: { email?: string; displayName?: string };
-      status: string;
-    }) => {
-      // Extract Google Meet link
-      let meetLink = event.hangoutLink || null;
-      if (!meetLink && event.conferenceData?.entryPoints) {
-        const videoEntry = event.conferenceData.entryPoints.find(
-          (ep) => ep.entryPointType === "video"
-        );
-        if (videoEntry) meetLink = videoEntry.uri;
-      }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const items: any[] = (data.items || []).filter(
+    (event: { status: string }) => event.status !== "cancelled"
+  );
 
-      return {
-        id: event.id,
-        summary: event.summary || "Sin título",
-        start: event.start?.dateTime || event.start?.date || "",
-        end: event.end?.dateTime || event.end?.date || "",
-        meetLink,
-        organizer: event.organizer?.displayName || event.organizer?.email || "",
-        status: event.status,
-      };
-    });
+  // Collect unique recurringEventIds to batch-check weekly recurrence
+  const recurringIds = new Set<string>();
+  for (const event of items) {
+    if (event.recurringEventId) recurringIds.add(event.recurringEventId);
+  }
+
+  // Fetch parent events to check if they have FREQ=WEEKLY
+  const weeklyParents = new Set<string>();
+  await Promise.all(
+    Array.from(recurringIds).map(async (parentId) => {
+      try {
+        const parentRes = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(parentId)}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (!parentRes.ok) return;
+        const parent = await parentRes.json();
+        const recurrence: string[] = parent.recurrence || [];
+        if (recurrence.some((r: string) => r.toUpperCase().includes("FREQ=WEEKLY"))) {
+          weeklyParents.add(parentId);
+        }
+      } catch {
+        // Ignore — treat as non-recurring
+      }
+    })
+  );
+
+  return items.map((event) => {
+    // Extract Google Meet link
+    let meetLink = event.hangoutLink || null;
+    if (!meetLink && event.conferenceData?.entryPoints) {
+      const videoEntry = event.conferenceData.entryPoints.find(
+        (ep: { entryPointType: string }) => ep.entryPointType === "video"
+      );
+      if (videoEntry) meetLink = videoEntry.uri;
+    }
+
+    return {
+      id: event.id,
+      summary: event.summary || "Sin título",
+      start: event.start?.dateTime || event.start?.date || "",
+      end: event.end?.dateTime || event.end?.date || "",
+      meetLink,
+      organizer: event.organizer?.displayName || event.organizer?.email || "",
+      status: event.status,
+      isWeeklyRecurring: weeklyParents.has(event.recurringEventId),
+    };
+  });
 }

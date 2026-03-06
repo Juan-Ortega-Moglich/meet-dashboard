@@ -76,11 +76,18 @@ export async function POST() {
   const results = await Promise.all(HOSTS.map(getHostEvents));
 
   // Group all events by meetLink, keeping the highest-priority host per link
+  // Skip weekly recurring meetings (they don't get automatic bots)
   const meetingMap = new Map<string, MeetingCandidate>();
+  const skippedWeekly: string[] = [];
 
   for (const { host, events } of results) {
     for (const event of events) {
       if (!event.meetLink) continue;
+
+      if (event.isWeeklyRecurring) {
+        skippedWeekly.push(`${host}: "${event.summary}" (semanal)`);
+        continue;
+      }
 
       const existing = meetingMap.get(event.meetLink);
       const currentPriority = HOST_PRIORITY[host] ?? -1;
@@ -138,12 +145,16 @@ export async function POST() {
   if (skippedDuplicates.length > 0) {
     console.log(`[Auto-Schedule] Deduplicated meetings:\n${skippedDuplicates.join("\n")}`);
   }
+  if (skippedWeekly.length > 0) {
+    console.log(`[Auto-Schedule] Skipped weekly recurring:\n${skippedWeekly.join("\n")}`);
+  }
 
   return NextResponse.json({
     ok: true,
     scheduled,
     details,
     skippedDuplicates,
+    skippedWeekly,
     timestamp: now.toISOString(),
   });
 }
