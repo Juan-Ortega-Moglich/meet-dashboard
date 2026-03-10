@@ -8,6 +8,7 @@ import {
   Phone,
   Bot,
   LayoutTemplate,
+  DollarSign,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -43,6 +44,11 @@ const menuItems = [
     label: "Plantillas",
     href: "/plantillas",
     icon: LayoutTemplate,
+  },
+  {
+    label: "Costos",
+    href: "/costos",
+    icon: DollarSign,
   },
 ];
 
