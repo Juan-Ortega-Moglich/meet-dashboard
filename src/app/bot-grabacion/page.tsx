@@ -55,6 +55,7 @@ const hosts: { id: string; name: string; connected: boolean; calendarType: "goog
   { id: "wisdom", name: "Wisdom", connected: true, calendarType: "ics" },
   { id: "biofleming", name: "Biofleming", connected: true, calendarType: "google" },
   { id: "inbest", name: "Inbest", connected: true, calendarType: "google" },
+  { id: "blindaje360", name: "Blindaje360", connected: true, calendarType: "google" },
 ];
 
 const mockHostData: Record<string, { meetingsToday: Meeting[]; upcomingMeetings: Meeting[] }> = {

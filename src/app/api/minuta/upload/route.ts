@@ -11,6 +11,7 @@ const HOST_FOLDER_MAP: Record<string, string> = {
   Inbest: "Obok",
   Wisdom: "Wisdom",
   Biofleming: "Biofleming",
+  Blindaje360: "Blindaje360",
 };
 
 // POST /api/minuta/upload — Upload PDF to Drive and save to meeting_minutes

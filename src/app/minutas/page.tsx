@@ -49,7 +49,7 @@ interface SavedTemplate {
 
 // --- Constants ---
 
-const HOST_TABS = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest"];
+const HOST_TABS = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
 const TEMPLATE_WIDTH = 794;
 
 const DEFAULT_TEMPLATE: SavedTemplate = {

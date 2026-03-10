@@ -80,7 +80,7 @@ interface MinutaData {
 
 // --- Constants ---
 
-const defaultHosts = ["Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest"];
+const defaultHosts = ["Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
 
 // --- Helpers ---
 

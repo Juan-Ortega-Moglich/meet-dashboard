@@ -27,7 +27,7 @@ const COST_PER_HOUR_USD = 0.65;
 const USD_TO_MXN = 18;
 const COST_PER_MINUTE_USD = COST_PER_HOUR_USD / 60;
 
-const HOST_TABS = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest"];
+const HOST_TABS = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
 
 // --- Helpers ---
 

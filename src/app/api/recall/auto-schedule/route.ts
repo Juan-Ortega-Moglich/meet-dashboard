@@ -12,6 +12,7 @@ const HOSTS = [
   { name: "Wisdom", calendarType: "ics" as const },
   { name: "Biofleming", calendarType: "google" as const },
   { name: "Inbest", calendarType: "google" as const },
+  { name: "Blindaje360", calendarType: "google" as const },
 ];
 
 async function getHostEvents(host: typeof HOSTS[0]): Promise<{ host: string; events: CalendarEvent[] }> {
@@ -48,6 +49,7 @@ const HOST_PRIORITY: Record<string, number> = {
   Wisdom: 4,
   Biofleming: 5,
   Inbest: 6,
+  Blindaje360: 7,
 };
 
 interface MeetingCandidate {

@@ -12,7 +12,7 @@ export interface TriggerAutoMinutaParams {
 }
 
 // Solo generar minutas automaticas para estos hosts
-const AUTO_MINUTA_HOSTS = ["Wisdom", "Biofleming", "Inbest"];
+const AUTO_MINUTA_HOSTS = ["Wisdom", "Biofleming", "Inbest", "Blindaje360"];
 
 export async function triggerAutoMinuta(params: TriggerAutoMinutaParams) {
   const { recordingId, recallBotId, host, title, date, duration, transcript } = params;
