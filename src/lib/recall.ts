@@ -50,6 +50,10 @@ export async function createBot(params: CreateBotParams) {
           },
         },
         audio_mixed_mp3: {},
+        retention: {
+          type: "timed",
+          hours: 168,
+        },
       },
       automatic_leave: {
         silence_detection: {
