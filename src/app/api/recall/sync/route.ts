@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getBot, getBotTranscript } from "@/lib/recall";
+import { getBot, getBotTranscript, deleteBot } from "@/lib/recall";
 import { triggerAutoMinuta } from "@/lib/auto-minuta";
 
 // POST /api/recall/sync — Sync done bots that are missing from recordings table
@@ -115,6 +115,14 @@ export async function POST() {
               .from("recall_bots")
               .update({ status: "done" })
               .eq("recall_bot_id", botRecord.recall_bot_id);
+          }
+
+          // Delete bot from Recall to avoid storage costs after 7 days
+          try {
+            await deleteBot(botRecord.recall_bot_id);
+            console.log(`[Sync] Bot ${botRecord.recall_bot_id} deleted from Recall`);
+          } catch (delErr) {
+            console.error(`[Sync] Failed to delete bot ${botRecord.recall_bot_id}:`, delErr);
           }
         }
       } catch (err) {

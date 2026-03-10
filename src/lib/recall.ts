@@ -88,6 +88,20 @@ export async function listBots() {
   });
 }
 
+export async function deleteBot(botId: string) {
+  const res = await fetch(`${BASE_URL}/bot/${botId}/`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Token ${RECALL_API_KEY}`,
+    },
+  });
+
+  if (!res.ok && res.status !== 404) {
+    const error = await res.text();
+    throw new Error(`Recall API delete error ${res.status}: ${error}`);
+  }
+}
+
 // Recall transcript format from the download URL
 interface RecallTranscriptEntry {
   participant: {

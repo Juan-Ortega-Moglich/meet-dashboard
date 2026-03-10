@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBot, getBotTranscript } from "@/lib/recall";
+import { getBot, getBotTranscript, deleteBot } from "@/lib/recall";
 import { supabase } from "@/lib/supabase";
 import { triggerAutoMinuta } from "@/lib/auto-minuta";
 
@@ -152,6 +152,14 @@ async function handleBotDone(botId: string) {
       .from("recall_bots")
       .update({ status: "done" })
       .eq("recall_bot_id", botId);
+
+    // Delete bot from Recall to avoid storage costs after 7 days
+    try {
+      await deleteBot(botId);
+      console.log(`[Webhook] Bot ${botId} deleted from Recall to avoid storage fees`);
+    } catch (err) {
+      console.error(`[Webhook] Failed to delete bot ${botId} from Recall:`, err);
+    }
   } catch (err) {
     console.error("[Webhook] handleBotDone error:", err);
   }
