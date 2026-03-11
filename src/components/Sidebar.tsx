@@ -9,6 +9,7 @@ import {
   Bot,
   LayoutTemplate,
   DollarSign,
+  KeyRound,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -49,6 +50,11 @@ const menuItems = [
     label: "Costos",
     href: "/costos",
     icon: DollarSign,
+  },
+  {
+    label: "Cuentas",
+    href: "/cuentas",
+    icon: KeyRound,
   },
 ];
 

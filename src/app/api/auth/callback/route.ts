@@ -32,12 +32,15 @@ export async function GET(req: NextRequest) {
 
     const tokenExpiry = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
+    // Strip "cuentas:" prefix for DB storage (used for redirect routing)
+    const dbHost = host.startsWith("cuentas:") ? host.replace("cuentas:", "") : host;
+
     // Upsert token in Supabase
     const { error: dbError } = await supabase
       .from("oauth_tokens")
       .upsert(
         {
-          host,
+          host: dbHost,
           access_token: tokens.access_token,
           refresh_token: tokens.refresh_token,
           token_expiry: tokenExpiry,
@@ -54,9 +57,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/bot-grabacion?auth_success=${host}`
-    );
+    // Redirect back to the page that initiated the auth
+    const redirectTo = host.startsWith("cuentas:")
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/cuentas?auth_success=${host.replace("cuentas:", "")}`
+      : `${process.env.NEXT_PUBLIC_APP_URL}/bot-grabacion?auth_success=${host}`;
+    return NextResponse.redirect(redirectTo);
   } catch (err) {
     console.error("OAuth callback error:", err);
     return NextResponse.redirect(
