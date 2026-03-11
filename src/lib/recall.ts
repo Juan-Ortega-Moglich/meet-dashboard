@@ -92,17 +92,28 @@ export async function listBots() {
   });
 }
 
+// Delete a bot's recordings to free storage (Recall doesn't allow deleting bots directly)
 export async function deleteBot(botId: string) {
-  const res = await fetch(`${BASE_URL}/bot/${botId}/`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Token ${RECALL_API_KEY}`,
-    },
-  });
+  // First get the bot to find its recording IDs
+  const bot = await getBot(botId) as {
+    recordings: Array<{ id: string }>;
+  };
 
-  if (!res.ok && res.status !== 404) {
-    const error = await res.text();
-    throw new Error(`Recall API delete error ${res.status}: ${error}`);
+  const recordingIds = bot.recordings?.map((r) => r.id) || [];
+
+  // Delete each recording
+  for (const recId of recordingIds) {
+    const res = await fetch(`${BASE_URL}/recording/${recId}/`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Token ${RECALL_API_KEY}`,
+      },
+    });
+
+    if (!res.ok && res.status !== 404) {
+      const error = await res.text();
+      throw new Error(`Recall API delete recording error ${res.status}: ${error}`);
+    }
   }
 }
 
