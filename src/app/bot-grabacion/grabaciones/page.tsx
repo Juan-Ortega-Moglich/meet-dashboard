@@ -934,8 +934,10 @@ export default function GrabacionesPage() {
         const data = await res.json();
         setRecordings(data.recordings || []);
         if (data.hosts && data.hosts.length > 0) {
-          const merged = [...new Set([...data.hosts, ...hosts])].sort();
-          setHosts(merged);
+          setHosts((prev) => {
+            const merged = [...new Set([...data.hosts, ...prev])].sort();
+            return merged;
+          });
         }
       } else {
         setRecordings([]);
@@ -945,7 +947,7 @@ export default function GrabacionesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedHost, hosts]);
+  }, [selectedHost]);
 
   useEffect(() => {
     setLoading(true);
