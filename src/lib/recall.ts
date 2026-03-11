@@ -52,7 +52,7 @@ export async function createBot(params: CreateBotParams) {
         audio_mixed_mp3: {},
         retention: {
           type: "timed",
-          hours: 168,
+          hours: 144,
         },
       },
       automatic_leave: {
