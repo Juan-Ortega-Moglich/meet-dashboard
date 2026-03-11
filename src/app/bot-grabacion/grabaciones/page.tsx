@@ -623,6 +623,34 @@ function RecordingCard({
   const [showTemplateSelect, setShowTemplateSelect] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<SavedTemplate | null>(null);
   const [showMinutaModal, setShowMinutaModal] = useState(false);
+  const [savingToDrive, setSavingToDrive] = useState(false);
+  const [driveLink, setDriveLink] = useState<string | null>(null);
+  const [driveError, setDriveError] = useState<string | null>(null);
+
+  const handleSaveVideoToDrive = async () => {
+    if (!recording.video_url) return;
+    setSavingToDrive(true);
+    setDriveError(null);
+    try {
+      const res = await fetch("/api/recordings/save-to-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl: recording.video_url,
+          title: recording.title,
+          host: recording.host,
+          recordingId: recording.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al guardar en Drive");
+      setDriveLink(data.link);
+    } catch (err) {
+      setDriveError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setSavingToDrive(false);
+    }
+  };
 
   const handleGenerateMinuta = async (template: SavedTemplate) => {
     setShowTemplateSelect(false);
@@ -731,6 +759,43 @@ function RecordingCard({
                 <ExternalLink size={15} />
                 Ver video
               </a>
+            )}
+            {recording.video_url && !driveLink && (
+              <button
+                onClick={handleSaveVideoToDrive}
+                disabled={savingToDrive}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ background: "linear-gradient(135deg, #8b5cf6, #7c3aed)" }}
+              >
+                {savingToDrive ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Guardando en Drive...
+                  </>
+                ) : (
+                  <>
+                    <CloudUpload size={15} />
+                    Guardar en Drive
+                  </>
+                )}
+              </button>
+            )}
+            {driveLink && (
+              <a
+                href={driveLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg"
+                style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}
+              >
+                <Check size={15} />
+                Ver en Drive
+              </a>
+            )}
+            {driveError && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs text-red-600 bg-red-50 dark:bg-red-900/30">
+                {driveError}
+              </span>
             )}
             {recording.transcript.length > 0 && (
               <button
