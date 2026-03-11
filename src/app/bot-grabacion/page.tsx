@@ -45,18 +45,14 @@ interface CalendarEvent {
   _host?: string; // used in "Todos" view
 }
 
-// --- Mock Data (for hosts without calendar integration) ---
+// --- Host type ---
 
-const hosts: { id: string; name: string; connected: boolean; calendarType: "google" | "ics" }[] = [
-  { id: "operaciones", name: "Operaciones", connected: true, calendarType: "google" },
-  { id: "andres", name: "Andres", connected: true, calendarType: "google" },
-  { id: "pablo", name: "Pablo", connected: true, calendarType: "google" },
-  { id: "rafa", name: "Rafa", connected: true, calendarType: "google" },
-  { id: "wisdom", name: "Wisdom", connected: true, calendarType: "ics" },
-  { id: "biofleming", name: "Biofleming", connected: true, calendarType: "google" },
-  { id: "inbest", name: "Inbest", connected: true, calendarType: "google" },
-  { id: "blindaje360", name: "Blindaje360", connected: true, calendarType: "google" },
-];
+interface HostDef {
+  id: string;
+  name: string;
+  connected: boolean;
+  calendarType: "google" | "ics";
+}
 
 const mockHostData: Record<string, { meetingsToday: Meeting[]; upcomingMeetings: Meeting[] }> = {
   wisdom: {
@@ -561,6 +557,7 @@ function JoinBotModal({
 // --- Page ---
 
 export default function BotGrabacionPage() {
+  const [hosts, setHosts] = useState<HostDef[]>([]);
   const [selectedHostId, setSelectedHostId] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [activeBots, setActiveBots] = useState<ActiveBot[]>([]);
@@ -574,14 +571,32 @@ export default function BotGrabacionPage() {
   const [botStatusByUrl, setBotStatusByUrl] = useState<Map<string, string>>(new Map());
   const [autoScheduleRan, setAutoScheduleRan] = useState(false);
 
+  // Fetch hosts from API
+  useEffect(() => {
+    fetch("/api/hosts")
+      .then((res) => res.json())
+      .then((data) => {
+        const hostList: HostDef[] = (data.hosts || []).map((h: { name: string; calendar_type: string }) => ({
+          id: h.name.toLowerCase().replace(/\s+/g, "-"),
+          name: h.name,
+          connected: true,
+          calendarType: h.calendar_type as "google" | "ics",
+        }));
+        setHosts(hostList);
+      })
+      .catch(() => {});
+  }, []);
+
   const isTodos = selectedHostId === "todos";
   const selectedHost = hosts.find((h) => h.id === selectedHostId) ?? hosts[0];
-  const isConnectedHost = isTodos || selectedHost.connected;
+  const isConnectedHost = isTodos || selectedHost?.connected;
+
+  const hostName = selectedHost?.name || "";
 
   // Fetch active bots
   const fetchActiveBots = useCallback(async () => {
     try {
-      const url = isTodos ? "/api/recall/bot" : `/api/recall/bot?host=${selectedHost.name}`;
+      const url = isTodos ? "/api/recall/bot" : `/api/recall/bot?host=${hostName}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -591,7 +606,7 @@ export default function BotGrabacionPage() {
         setBotStatusByUrl(new Map(bots.map((b) => [b.meeting_url, b.status])));
       }
     } catch { /* silently fail */ }
-  }, [selectedHost.name, isTodos]);
+  }, [hostName, isTodos]);
 
   // Auto-schedule bots for all hosts (runs once on page load)
   const runAutoSchedule = useCallback(async () => {
@@ -657,13 +672,13 @@ export default function BotGrabacionPage() {
         setUpcomingEvents(allUpcomingEvents);
       } else {
         const [todayRes, upcomingRes] = await Promise.all([
-          fetch(`/api/calendar?host=${selectedHost.name}&range=today`),
-          fetch(`/api/calendar?host=${selectedHost.name}&range=upcoming`),
+          fetch(`/api/calendar?host=${hostName}&range=today`),
+          fetch(`/api/calendar?host=${hostName}&range=upcoming`),
         ]);
         const todayData = await todayRes.json();
         const upcomingData = await upcomingRes.json();
 
-        if (todayData.authorized === false && selectedHost.calendarType !== "ics") {
+        if (todayData.authorized === false && selectedHost?.calendarType !== "ics") {
           setCalendarAuthorized(false);
           setTodayEvents([]);
           setUpcomingEvents([]);
@@ -678,7 +693,7 @@ export default function BotGrabacionPage() {
     } finally {
       setCalendarLoading(false);
     }
-  }, [isConnectedHost, selectedHost.name, isTodos]);
+  }, [isConnectedHost, hostName, isTodos]);
 
   useEffect(() => {
     fetchActiveBots();
@@ -698,7 +713,7 @@ export default function BotGrabacionPage() {
     if (!event.meetLink) return;
     setSendingBotId(event.id);
     try {
-      const host = event._host || selectedHost.name;
+      const host = event._host || hostName;
       const res = await fetch("/api/recall/bot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -788,17 +803,17 @@ export default function BotGrabacionPage() {
       </div>
 
       {/* Connect Calendar prompt (for Google Calendar hosts not yet authorized) */}
-      {!isTodos && isConnectedHost && calendarAuthorized === false && selectedHost.calendarType === "google" && (
+      {!isTodos && isConnectedHost && calendarAuthorized === false && selectedHost?.calendarType === "google" && (
         <div className="mb-6 md:mb-8 bg-white dark:bg-gray-900 rounded-2xl border border-blue-200 dark:border-blue-800 p-6 text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 mb-4">
             <Calendar size={24} className="text-[#2055e4]" />
           </div>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Conectar Calendario de {selectedHost.name}</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2">Conectar Calendario de {hostName}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Autoriza el acceso al calendario de Google para ver las reuniones y enviar bots automáticamente.
           </p>
           <a
-            href={`/api/auth/google?host=${selectedHost.name}`}
+            href={`/api/auth/google?host=${hostName}`}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-white text-sm font-medium rounded-xl transition-all hover:opacity-90 hover:shadow-lg"
             style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}
           >
@@ -947,7 +962,7 @@ export default function BotGrabacionPage() {
         </div>
       )}
 
-      <JoinBotModal open={modalOpen} onClose={handleModalClose} selectedHost={isTodos ? "Operaciones" : selectedHost.name} />
+      <JoinBotModal open={modalOpen} onClose={handleModalClose} selectedHost={isTodos ? "Operaciones" : hostName} />
     </div>
   );
 }

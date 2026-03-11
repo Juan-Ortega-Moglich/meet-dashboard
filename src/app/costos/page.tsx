@@ -27,7 +27,7 @@ const COST_PER_HOUR_USD = 0.65;
 const USD_TO_MXN = 18;
 const COST_PER_MINUTE_USD = COST_PER_HOUR_USD / 60;
 
-const HOST_TABS = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
+const DEFAULT_hostTabs = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
 
 // --- Helpers ---
 
@@ -111,6 +111,18 @@ export default function CostosPage() {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeHost, setActiveHost] = useState("Todos");
+  const [hostTabs, setHostTabs] = useState(DEFAULT_hostTabs);
+
+  useEffect(() => {
+    fetch("/api/hosts")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.hosts?.length) {
+          setHostTabs(["Todos", ...data.hosts.map((h: { name: string }) => h.name)]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchRecordings = useCallback(async () => {
     setLoading(true);
@@ -149,7 +161,7 @@ export default function CostosPage() {
   const totalSummary = calcSummary(filtered);
 
   // Per-host breakdown for the month
-  const hostBreakdown = HOST_TABS.filter((h) => h !== "Todos").map((host) => {
+  const hostBreakdown = hostTabs.filter((h) => h !== "Todos").map((host) => {
     const hostRecs = recordings.filter(
       (r) => r.host.toLowerCase() === host.toLowerCase() && isInRange(r.date, monthStart, monthEnd)
     );
@@ -187,7 +199,7 @@ export default function CostosPage() {
 
       {/* Host tabs */}
       <div className="flex gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
-        {HOST_TABS.map((host) => (
+        {hostTabs.map((host) => (
           <button
             key={host}
             onClick={() => setActiveHost(host)}

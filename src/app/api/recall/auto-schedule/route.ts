@@ -4,7 +4,7 @@ import { getIcsUrl, getIcsCalendarEvents } from "@/lib/ical";
 import { createBot } from "@/lib/recall";
 import { supabase } from "@/lib/supabase";
 
-const HOSTS = [
+const FALLBACK_HOSTS = [
   { name: "Operaciones", calendarType: "google" as const },
   { name: "Andres", calendarType: "google" as const },
   { name: "Pablo", calendarType: "google" as const },
@@ -15,7 +15,20 @@ const HOSTS = [
   { name: "Blindaje360", calendarType: "google" as const },
 ];
 
-async function getHostEvents(host: typeof HOSTS[0]): Promise<{ host: string; events: CalendarEvent[] }> {
+async function getHosts(): Promise<{ name: string; calendarType: "google" | "ics" }[]> {
+  try {
+    const { data, error } = await supabase
+      .from("hosts")
+      .select("name, calendar_type")
+      .order("created_at", { ascending: true });
+    if (error || !data || data.length === 0) return FALLBACK_HOSTS;
+    return data.map((h) => ({ name: h.name, calendarType: h.calendar_type as "google" | "ics" }));
+  } catch {
+    return FALLBACK_HOSTS;
+  }
+}
+
+async function getHostEvents(host: { name: string; calendarType: "google" | "ics" }): Promise<{ host: string; events: CalendarEvent[] }> {
   try {
     const now = new Date();
     const endOfDay = new Date(now);
@@ -39,18 +52,13 @@ async function getHostEvents(host: typeof HOSTS[0]): Promise<{ host: string; eve
   }
 }
 
-// Host priority: higher index = higher priority. When multiple hosts share the
-// same meeting link, only the highest-priority host gets a bot.
-const HOST_PRIORITY: Record<string, number> = {
-  Operaciones: 0,
-  Andres: 1,
-  Pablo: 2,
-  Rafa: 3,
-  Wisdom: 4,
-  Biofleming: 5,
-  Inbest: 6,
-  Blindaje360: 7,
-};
+// Host priority: index in the hosts list = priority. Higher index = higher priority.
+// When multiple hosts share the same meeting link, only the highest-priority host gets a bot.
+function buildHostPriority(hosts: { name: string }[]): Record<string, number> {
+  const priority: Record<string, number> = {};
+  hosts.forEach((h, i) => { priority[h.name] = i; });
+  return priority;
+}
 
 interface MeetingCandidate {
   host: string;
@@ -73,6 +81,10 @@ export async function POST() {
   const existingMeetingUrls = new Set(
     (todayBots || []).map((b) => b.meeting_url)
   );
+
+  // Fetch hosts dynamically
+  const HOSTS = await getHosts();
+  const HOST_PRIORITY = buildHostPriority(HOSTS);
 
   // Fetch all hosts' events in parallel
   const results = await Promise.all(HOSTS.map(getHostEvents));

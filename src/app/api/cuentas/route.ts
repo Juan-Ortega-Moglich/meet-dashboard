@@ -1,21 +1,37 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// Host definitions (same as bot-grabacion page)
-const ALL_HOSTS = [
-  { id: "operaciones", name: "Operaciones", calendarType: "google" as const },
-  { id: "andres", name: "Andres", calendarType: "google" as const },
-  { id: "pablo", name: "Pablo", calendarType: "google" as const },
-  { id: "rafa", name: "Rafa", calendarType: "google" as const },
-  { id: "wisdom", name: "Wisdom", calendarType: "ics" as const },
-  { id: "biofleming", name: "Biofleming", calendarType: "google" as const },
-  { id: "inbest", name: "Inbest", calendarType: "google" as const },
-  { id: "blindaje360", name: "Blindaje360", calendarType: "google" as const },
+// Hardcoded defaults (fallback if hosts table doesn't exist)
+const DEFAULT_HOSTS = [
+  { name: "Operaciones", calendar_type: "google" },
+  { name: "Andres", calendar_type: "google" },
+  { name: "Pablo", calendar_type: "google" },
+  { name: "Rafa", calendar_type: "google" },
+  { name: "Wisdom", calendar_type: "ics" },
+  { name: "Biofleming", calendar_type: "google" },
+  { name: "Inbest", calendar_type: "google" },
+  { name: "Blindaje360", calendar_type: "google" },
 ];
+
+async function getHosts(): Promise<{ name: string; calendar_type: string }[]> {
+  try {
+    const { data, error } = await supabase
+      .from("hosts")
+      .select("name, calendar_type")
+      .order("created_at", { ascending: true });
+
+    if (error || !data || data.length === 0) return DEFAULT_HOSTS;
+    return data;
+  } catch {
+    return DEFAULT_HOSTS;
+  }
+}
 
 // GET /api/cuentas — List all accounts with their OAuth status
 export async function GET() {
   try {
+    const allHosts = await getHosts();
+
     // Fetch all tokens from Supabase
     const { data: tokens, error } = await supabase
       .from("oauth_tokens")
@@ -30,16 +46,17 @@ export async function GET() {
       (tokens || []).map((t) => [t.host, t])
     );
 
-    // For each Google host, test if the refresh token actually works
+    // For each host, test if the refresh token actually works
     const accounts = await Promise.all(
-      ALL_HOSTS.map(async (host) => {
+      allHosts.map(async (host) => {
         const token = tokenMap.get(host.name);
+        const id = host.name.toLowerCase().replace(/\s+/g, "-");
 
-        if (host.calendarType === "ics") {
+        if (host.calendar_type === "ics") {
           return {
-            id: host.id,
+            id,
             name: host.name,
-            calendarType: host.calendarType,
+            calendarType: host.calendar_type as "google" | "ics",
             connected: true,
             email: null,
             status: "ics" as const,
@@ -51,9 +68,9 @@ export async function GET() {
 
         if (!token) {
           return {
-            id: host.id,
+            id,
             name: host.name,
-            calendarType: host.calendarType,
+            calendarType: host.calendar_type as "google" | "ics",
             connected: false,
             email: null,
             status: "no_token" as const,
@@ -83,8 +100,6 @@ export async function GET() {
             const errData = await refreshRes.json();
             status = "expired";
             errorMsg = errData.error_description || errData.error || "Token inválido";
-
-            // If refresh worked, update the stored token
           } else {
             const refreshData = await refreshRes.json();
             const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
@@ -103,9 +118,9 @@ export async function GET() {
         }
 
         return {
-          id: host.id,
+          id,
           name: host.name,
-          calendarType: host.calendarType,
+          calendarType: host.calendar_type as "google" | "ics",
           connected: status === "valid",
           email: token.email || null,
           status,

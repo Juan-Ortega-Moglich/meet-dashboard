@@ -49,7 +49,7 @@ interface SavedTemplate {
 
 // --- Constants ---
 
-const HOST_TABS = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
+const DEFAULT_hostTabs = ["Todos", "Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
 const TEMPLATE_WIDTH = 794;
 
 const DEFAULT_TEMPLATE: SavedTemplate = {
@@ -500,6 +500,18 @@ function AutoMinutasSection() {
   const [selectedMinuta, setSelectedMinuta] = useState<AutoMinuta | null>(null);
   const [allTemplates, setAllTemplates] = useState<SavedTemplate[]>([]);
   const [retrying, setRetrying] = useState<string | null>(null);
+  const [hostTabs, setHostTabs] = useState(DEFAULT_hostTabs);
+
+  useEffect(() => {
+    fetch("/api/hosts")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.hosts?.length) {
+          setHostTabs(["Todos", ...data.hosts.map((h: { name: string }) => h.name)]);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchMinutas = useCallback(async () => {
     try {
@@ -580,7 +592,7 @@ function AutoMinutasSection() {
 
       {/* Host tabs — always visible */}
       <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
-        {HOST_TABS.map((tab) => {
+        {hostTabs.map((tab) => {
           const isActive = selectedTab === tab;
           return (
             <button

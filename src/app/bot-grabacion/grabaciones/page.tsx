@@ -80,7 +80,7 @@ interface MinutaData {
 
 // --- Constants ---
 
-const defaultHosts = ["Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
+const FALLBACK_HOSTS = ["Operaciones", "Andres", "Pablo", "Rafa", "Wisdom", "Biofleming", "Inbest", "Blindaje360"];
 
 // --- Helpers ---
 
@@ -844,8 +844,20 @@ export default function GrabacionesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedHost, setSelectedHost] = useState("Todos");
   const [recordings, setRecordings] = useState<Recording[]>([]);
-  const [hosts, setHosts] = useState<string[]>(defaultHosts);
+  const [hosts, setHosts] = useState<string[]>(FALLBACK_HOSTS);
   const [loading, setLoading] = useState(true);
+
+  // Load hosts from API
+  useEffect(() => {
+    fetch("/api/hosts")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.hosts?.length) {
+          setHosts(data.hosts.map((h: { name: string }) => h.name));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchRecordings = useCallback(async () => {
     try {
@@ -857,7 +869,7 @@ export default function GrabacionesPage() {
         const data = await res.json();
         setRecordings(data.recordings || []);
         if (data.hosts && data.hosts.length > 0) {
-          const merged = [...new Set([...data.hosts, ...defaultHosts])].sort();
+          const merged = [...new Set([...data.hosts, ...hosts])].sort();
           setHosts(merged);
         }
       } else {
@@ -868,7 +880,7 @@ export default function GrabacionesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedHost]);
+  }, [selectedHost, hosts]);
 
   useEffect(() => {
     setLoading(true);

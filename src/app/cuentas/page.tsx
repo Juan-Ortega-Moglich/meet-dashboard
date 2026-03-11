@@ -13,6 +13,10 @@ import {
   Calendar,
   Clock,
   Shield,
+  Plus,
+  X,
+  Trash2,
+  UserPlus,
 } from "lucide-react";
 
 interface Account {
@@ -90,6 +94,17 @@ export default function CuentasPage() {
   const [successHost, setSuccessHost] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
+  // Add user modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newCalendarType, setNewCalendarType] = useState<"google" | "ics">("google");
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  // Delete confirm state
+  const [deletingHost, setDeletingHost] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
@@ -110,7 +125,6 @@ export default function CuentasPage() {
     const authSuccess = searchParams.get("auth_success");
     if (authSuccess) {
       setSuccessHost(authSuccess);
-      // Clear URL params
       window.history.replaceState({}, "", "/cuentas");
       setTimeout(() => setSuccessHost(null), 5000);
     }
@@ -118,8 +132,64 @@ export default function CuentasPage() {
 
   const handleReauth = (hostName: string) => {
     setRefreshingId(hostName);
-    // Redirect to Google OAuth — use cuentas: prefix so callback returns here
     window.location.href = `/api/auth/google?host=cuentas:${hostName}`;
+  };
+
+  const handleAddHost = async () => {
+    if (!newName.trim()) return;
+    setAdding(true);
+    setAddError(null);
+
+    try {
+      const res = await fetch("/api/hosts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), calendar_type: newCalendarType }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAddError(data.error || "Error al agregar");
+        return;
+      }
+
+      // Close modal and redirect to OAuth if Google
+      setShowAddModal(false);
+      setNewName("");
+      setNewCalendarType("google");
+
+      if (newCalendarType === "google") {
+        // Redirect to OAuth for the new host
+        window.location.href = `/api/auth/google?host=cuentas:${newName.trim()}`;
+      } else {
+        // ICS — just refresh the list
+        fetchAccounts();
+      }
+    } catch {
+      setAddError("Error de conexión");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleDeleteHost = async (hostName: string) => {
+    setDeletingHost(hostName);
+    try {
+      const res = await fetch("/api/hosts", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: hostName }),
+      });
+      if (res.ok) {
+        setDeleteConfirm(null);
+        fetchAccounts();
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setDeletingHost(null);
+    }
   };
 
   const validCount = accounts.filter((a) => a.status === "valid" || a.status === "ics").length;
@@ -129,18 +199,28 @@ export default function CuentasPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">Cuentas</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Administra las conexiones de Google Calendar de cada host.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 md:mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">Cuentas</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Administra las conexiones de Google Calendar de cada host.
+          </p>
+        </div>
+        <button
+          onClick={() => { setShowAddModal(true); setAddError(null); }}
+          className="flex items-center justify-center gap-2 px-5 py-2.5 text-white text-sm font-medium rounded-xl transition-all hover:opacity-90 hover:shadow-lg w-full sm:w-auto"
+          style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}
+        >
+          <Plus size={16} />
+          Agregar Usuario
+        </button>
       </div>
 
       {/* Success banner */}
       {successHost && (
         <div className="mb-6 flex items-center gap-2 p-4 rounded-xl bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 text-sm">
           <CheckCircle2 size={16} />
-          <span><strong>{successHost}</strong> se reautenticó correctamente.</span>
+          <span><strong>{successHost}</strong> se autenticó correctamente.</span>
         </div>
       )}
 
@@ -273,42 +353,172 @@ export default function CuentasPage() {
                   </div>
                 </div>
 
-                {/* Right side: action button */}
-                {account.calendarType === "google" && (
-                  <div className="shrink-0 sm:ml-4">
-                    {account.status === "valid" ? (
+                {/* Right side: action buttons */}
+                <div className="flex items-center gap-2 shrink-0 sm:ml-4">
+                  {account.calendarType === "google" && (
+                    <>
+                      {account.status === "valid" ? (
+                        <button
+                          onClick={() => handleReauth(account.name)}
+                          disabled={refreshingId === account.name}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                        >
+                          {refreshingId === account.name ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <RefreshCw size={14} />
+                          )}
+                          Reautenticar
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleReauth(account.name)}
+                          disabled={refreshingId === account.name}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg disabled:opacity-50"
+                          style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}
+                        >
+                          {refreshingId === account.name ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <LogIn size={14} />
+                          )}
+                          {account.status === "no_token" ? "Conectar" : "Reautenticar"}
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* Delete button */}
+                  {deleteConfirm === account.name ? (
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleReauth(account.name)}
-                        disabled={refreshingId === account.name}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 w-full sm:w-auto justify-center"
+                        onClick={() => handleDeleteHost(account.name)}
+                        disabled={deletingHost === account.name}
+                        className="flex items-center gap-1 px-3 py-2.5 rounded-xl text-xs font-medium text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50"
                       >
-                        {refreshingId === account.name ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <RefreshCw size={14} />
-                        )}
-                        Reautenticar
+                        {deletingHost === account.name ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        Eliminar
                       </button>
-                    ) : (
                       <button
-                        onClick={() => handleReauth(account.name)}
-                        disabled={refreshingId === account.name}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg disabled:opacity-50 w-full sm:w-auto justify-center"
-                        style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}
+                        onClick={() => setDeleteConfirm(null)}
+                        className="px-2 py-2.5 rounded-xl text-xs font-medium border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
-                        {refreshingId === account.name ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <LogIn size={14} />
-                        )}
-                        {account.status === "no_token" ? "Conectar" : "Reautenticar"}
+                        No
                       </button>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteConfirm(account.name)}
+                      className="p-2.5 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg text-white" style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}>
+                  <UserPlus size={20} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Agregar Usuario</h3>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+              Agrega un nuevo usuario. Después de crearlo se abrirá la autenticación de Google para conectar su calendario.
+            </p>
+
+            {/* Name field */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Nombre del usuario
+              </label>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Ej: NombreEmpresa"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleAddHost(); }}
+              />
+            </div>
+
+            {/* Calendar type */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                Tipo de calendario
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setNewCalendarType("google")}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border transition-all ${
+                    newCalendarType === "google"
+                      ? "border-[#2055e4] bg-blue-50 dark:bg-blue-900/30 text-[#2055e4]"
+                      : "border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  <Calendar size={16} />
+                  Google Calendar
+                </button>
+                <button
+                  onClick={() => setNewCalendarType("ics")}
+                  className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border transition-all ${
+                    newCalendarType === "ics"
+                      ? "border-[#2055e4] bg-blue-50 dark:bg-blue-900/30 text-[#2055e4]"
+                      : "border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  <Mail size={16} />
+                  Outlook (ICS)
+                </button>
+              </div>
+            </div>
+
+            {/* Error */}
+            {addError && (
+              <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-red-50 text-red-700 text-sm">
+                <AlertCircle size={16} />{addError}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddHost}
+                disabled={!newName.trim() || adding}
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}
+              >
+                {adding ? (
+                  <><Loader2 size={16} className="animate-spin" />Agregando...</>
+                ) : (
+                  <><UserPlus size={16} />Agregar y Conectar</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
