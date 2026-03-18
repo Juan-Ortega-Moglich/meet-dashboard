@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Calendar, Clock, Video, X, Link2, ChevronDown, Bot, Loader2, CheckCircle2, AlertCircle, LogIn, ExternalLink, PhoneOff } from "lucide-react";
+import { Plus, Calendar, Clock, Video, X, Link2, ChevronDown, Bot, Loader2, CheckCircle2, AlertCircle, LogIn, ExternalLink, PhoneOff, Timer } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 
 // --- Types ---
@@ -434,6 +434,20 @@ function JoinBotModal({
   const [fetchingTitle, setFetchingTitle] = useState(false);
   const [result, setResult] = useState<"success" | "error" | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [mode, setMode] = useState<"now" | "scheduled">("now");
+  const [scheduledTime, setScheduledTime] = useState("");
+
+  // Initialize scheduledTime to current time + 15 min when switching to scheduled mode
+  const handleModeChange = (newMode: "now" | "scheduled") => {
+    setMode(newMode);
+    if (newMode === "scheduled" && !scheduledTime) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 15);
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      setScheduledTime(`${hh}:${mm}`);
+    }
+  };
 
   if (!open) return null;
 
@@ -465,11 +479,40 @@ function JoinBotModal({
     }
   };
 
+  // Build ISO join_at from the selected time (today's date + chosen hour:minute)
+  const getJoinAt = (): string | undefined => {
+    if (mode !== "scheduled" || !scheduledTime) return undefined;
+    const [hh, mm] = scheduledTime.split(":").map(Number);
+    const target = new Date();
+    target.setHours(hh, mm, 0, 0);
+    // If the chosen time is already past, assume tomorrow
+    if (target <= new Date()) {
+      target.setDate(target.getDate() + 1);
+    }
+    return target.toISOString();
+  };
+
+  // How far away the scheduled time is, as a human string
+  const getTimeUntil = (): string | null => {
+    if (mode !== "scheduled" || !scheduledTime) return null;
+    const joinAt = getJoinAt();
+    if (!joinAt) return null;
+    const diff = new Date(joinAt).getTime() - Date.now();
+    const mins = Math.round(diff / 60000);
+    if (mins < 1) return "menos de 1 minuto";
+    if (mins < 60) return `${mins} minuto${mins === 1 ? "" : "s"}`;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return `${hrs}h ${remMins}m`;
+  };
+
   const handleConfirm = async () => {
     if (!link.trim()) return;
+    if (mode === "scheduled" && !scheduledTime) return;
     setSending(true);
     setResult(null);
     try {
+      const joinAt = getJoinAt();
       const res = await fetch("/api/recall/bot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -477,6 +520,7 @@ function JoinBotModal({
           meeting_url: link.trim(),
           host: selectedHost,
           meeting_title: title.trim() || "Reunión",
+          ...(joinAt ? { join_at: joinAt } : {}),
         }),
       });
       if (!res.ok) {
@@ -487,6 +531,8 @@ function JoinBotModal({
       setTimeout(() => {
         setLink("");
         setTitle("");
+        setScheduledTime("");
+        setMode("now");
         setResult(null);
         onClose();
       }, 1500);
@@ -497,6 +543,8 @@ function JoinBotModal({
       setSending(false);
     }
   };
+
+  const timeUntil = getTimeUntil();
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -520,9 +568,9 @@ function JoinBotModal({
           <Link2 size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input type="url" value={link} onChange={(e) => handleLinkChange(e.target.value)} placeholder="https://meet.google.com/abc-defg-hij"
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
-            autoFocus onKeyDown={(e) => { if (e.key === "Enter") handleConfirm(); }} />
+            autoFocus onKeyDown={(e) => { if (e.key === "Enter" && mode === "now") handleConfirm(); }} />
         </div>
-        <div className="relative mb-5">
+        <div className="relative mb-4">
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder={fetchingTitle ? "Buscando nombre..." : "Nombre de la reunión (auto-detectado)"}
             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
@@ -531,9 +579,65 @@ function JoinBotModal({
             <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#2055e4]" />
           )}
         </div>
+
+        {/* Mode toggle: Ahora / Programar */}
+        <div className="mb-4">
+          <div className="flex rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <button
+              onClick={() => handleModeChange("now")}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                mode === "now"
+                  ? "bg-[#2055e4] text-white"
+                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
+              }`}
+            >
+              <Bot size={15} />
+              Enviar ahora
+            </button>
+            <button
+              onClick={() => handleModeChange("scheduled")}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                mode === "scheduled"
+                  ? "bg-[#2055e4] text-white"
+                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
+              }`}
+            >
+              <Timer size={15} />
+              Programar
+            </button>
+          </div>
+        </div>
+
+        {/* Scheduled time picker */}
+        {mode === "scheduled" && (
+          <div className="mb-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <label className="block text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
+              Hora de envío del bot
+            </label>
+            <div className="relative">
+              <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" />
+              <input
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-blue-200 dark:border-blue-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-[#2055e4]/30 focus:border-[#2055e4] transition-all"
+              />
+            </div>
+            {timeUntil && (
+              <p className="mt-2 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                <Timer size={12} />
+                El bot se unirá en aproximadamente {timeUntil}
+              </p>
+            )}
+          </div>
+        )}
+
         {result === "success" && (
           <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-green-50 text-green-700 text-sm">
-            <CheckCircle2 size={16} />Bot enviado correctamente. Se está uniendo a la reunión.
+            <CheckCircle2 size={16} />
+            {mode === "scheduled"
+              ? "Bot programado correctamente. Se unirá a la hora indicada."
+              : "Bot enviado correctamente. Se está uniendo a la reunión."}
           </div>
         )}
         {result === "error" && (
@@ -543,10 +647,16 @@ function JoinBotModal({
         )}
         <div className="flex gap-3">
           <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancelar</button>
-          <button onClick={handleConfirm} disabled={!link.trim() || sending}
+          <button onClick={handleConfirm} disabled={!link.trim() || sending || (mode === "scheduled" && !scheduledTime)}
             className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 flex items-center justify-center gap-2"
-            style={{ background: "linear-gradient(135deg, #2055e4, #5980ff)" }}>
-            {sending ? (<><Loader2 size={16} className="animate-spin" />Enviando…</>) : "Unir Bot"}
+            style={{ background: mode === "scheduled" ? "linear-gradient(135deg, #2055e4, #5980ff)" : "linear-gradient(135deg, #2055e4, #5980ff)" }}>
+            {sending ? (
+              <><Loader2 size={16} className="animate-spin" />Enviando…</>
+            ) : mode === "scheduled" ? (
+              <><Timer size={16} />Programar Bot</>
+            ) : (
+              "Unir Bot"
+            )}
           </button>
         </div>
       </div>

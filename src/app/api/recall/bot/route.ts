@@ -5,25 +5,26 @@ import { supabase } from "@/lib/supabase";
 // POST /api/recall/bot — Create a bot and send it to a meeting
 export async function POST(req: NextRequest) {
   try {
-    const { meeting_url, host, meeting_title } = await req.json();
+    const { meeting_url, host, meeting_title, join_at } = await req.json();
 
     if (!meeting_url) {
       return NextResponse.json({ error: "meeting_url is required" }, { status: 400 });
     }
 
-    // Send bot to Recall.ai
+    // Send bot to Recall.ai (with optional scheduled time)
     const recallBot = await createBot({
       meeting_url,
       bot_name: "Asistente Comercial",
+      ...(join_at ? { join_at } : {}),
     }) as { id: string };
 
-    // Save to Supabase
+    // Save to Supabase — if scheduled, status is "ready"
     const { data, error } = await supabase.from("recall_bots").insert({
       recall_bot_id: recallBot.id,
       meeting_url,
       bot_name: "Asistente Comercial",
       host: host || "Operaciones",
-      status: "joining_call",
+      status: join_at ? "ready" : "joining_call",
       meeting_title: meeting_title || "Reunión",
     }).select().single();
 
