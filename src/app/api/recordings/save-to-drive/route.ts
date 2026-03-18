@@ -3,7 +3,6 @@ import { getAccessToken, findDriveFolder, createDriveFolder, shareDriveFile } fr
 import { supabase } from "@/lib/supabase";
 
 // Map host -> Drive client folder name inside "Minutas Moglich"
-// (same structure used for minutas)
 const HOST_FOLDER_MAP: Record<string, string> = {
   Operaciones: "Minutas sin formato",
   Andres: "Minutas sin formato",
@@ -13,6 +12,9 @@ const HOST_FOLDER_MAP: Record<string, string> = {
   Wisdom: "Wisdom",
   Biofleming: "Biofleming",
 };
+
+// Upload in 5MB chunks to avoid memory issues
+const CHUNK_SIZE = 5 * 1024 * 1024;
 
 // POST /api/recordings/save-to-drive — Download video from URL and upload to Drive
 export async function POST(req: NextRequest) {
@@ -46,14 +48,19 @@ export async function POST(req: NextRequest) {
       grabacionesFolderId = await createDriveFolder(accessToken, "Grabaciones", clientFolderId);
     }
 
-    // 2. Download the video from the source URL
-    const videoRes = await fetch(videoUrl);
-    if (!videoRes.ok) {
-      throw new Error(`Failed to download video: ${videoRes.status} ${videoRes.statusText}`);
+    // 2. Get video size and content type via HEAD request first
+    const headRes = await fetch(videoUrl, { method: "HEAD" });
+    if (!headRes.ok) {
+      // URL may have expired (Recall.ai S3 URLs are temporary)
+      throw new Error(`No se pudo acceder al video (${headRes.status}). Es posible que el enlace haya expirado.`);
     }
 
-    const contentType = videoRes.headers.get("content-type") || "video/mp4";
-    const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+    const contentLength = parseInt(headRes.headers.get("content-length") || "0", 10);
+    const contentType = headRes.headers.get("content-type") || "video/mp4";
+
+    if (contentLength === 0) {
+      throw new Error("El video tiene tamaño 0 o no se pudo determinar su tamaño.");
+    }
 
     // 3. Build a clean filename
     const sanitizedTitle = (title || "Grabacion")
@@ -63,8 +70,7 @@ export async function POST(req: NextRequest) {
     const ext = contentType.includes("webm") ? "webm" : "mp4";
     const fileName = `${sanitizedTitle} - ${host} - ${dateStr}.${ext}`;
 
-    // 4. Upload to Drive using resumable upload (supports large files)
-    // Step 4a: Initiate the resumable upload session
+    // 4. Initiate resumable upload session on Google Drive
     const metadata = {
       name: fileName,
       mimeType: contentType,
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json; charset=UTF-8",
           "X-Upload-Content-Type": contentType,
-          "X-Upload-Content-Length": videoBuffer.byteLength.toString(),
+          "X-Upload-Content-Length": contentLength.toString(),
         },
         body: JSON.stringify(metadata),
       }
@@ -87,37 +93,83 @@ export async function POST(req: NextRequest) {
 
     if (!initRes.ok) {
       const error = await initRes.text();
-      throw new Error(`Failed to initiate upload: ${error}`);
+      throw new Error(`Error al iniciar subida a Drive: ${error}`);
     }
 
     const uploadUri = initRes.headers.get("location");
     if (!uploadUri) {
-      throw new Error("No upload URI returned from Google Drive");
+      throw new Error("Google Drive no devolvió un URI de subida");
     }
 
-    // Step 4b: Upload the actual video bytes
-    const uploadRes = await fetch(uploadUri, {
-      method: "PUT",
-      headers: {
-        "Content-Type": contentType,
-        "Content-Length": videoBuffer.byteLength.toString(),
-      },
-      body: videoBuffer,
-    });
-
-    if (!uploadRes.ok) {
-      const error = await uploadRes.text();
-      throw new Error(`Failed to upload video: ${error}`);
+    // 5. Stream download → chunked upload to Drive
+    const videoRes = await fetch(videoUrl);
+    if (!videoRes.ok || !videoRes.body) {
+      throw new Error(`Error al descargar el video: ${videoRes.status}`);
     }
 
-    const uploadData = await uploadRes.json();
+    const reader = videoRes.body.getReader();
+    let uploadedBytes = 0;
+    let buffer = new Uint8Array(0);
+    let uploadData: { id: string; webViewLink: string } | null = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (value) {
+        // Append to buffer
+        const newBuffer = new Uint8Array(buffer.length + value.length);
+        newBuffer.set(buffer);
+        newBuffer.set(value, buffer.length);
+        buffer = newBuffer;
+      }
+
+      // Upload when we have a full chunk or it's the last piece
+      while (buffer.length >= CHUNK_SIZE || (done && buffer.length > 0)) {
+        const chunkSize = Math.min(CHUNK_SIZE, buffer.length);
+        const chunk = buffer.slice(0, chunkSize);
+        buffer = buffer.slice(chunkSize);
+
+        const rangeEnd = uploadedBytes + chunkSize - 1;
+        const isLastChunk = done && buffer.length === 0;
+
+        const chunkRes = await fetch(uploadUri, {
+          method: "PUT",
+          headers: {
+            "Content-Length": chunkSize.toString(),
+            "Content-Range": `bytes ${uploadedBytes}-${rangeEnd}/${contentLength}`,
+          },
+          body: chunk,
+        });
+
+        // Google returns 308 for intermediate chunks, 200 for the last one
+        if (isLastChunk) {
+          if (!chunkRes.ok) {
+            const error = await chunkRes.text();
+            throw new Error(`Error al subir chunk final: ${error}`);
+          }
+          uploadData = await chunkRes.json();
+        } else if (chunkRes.status !== 308 && !chunkRes.ok) {
+          const error = await chunkRes.text();
+          throw new Error(`Error al subir chunk: ${error}`);
+        }
+
+        uploadedBytes += chunkSize;
+      }
+
+      if (done) break;
+    }
+
+    if (!uploadData) {
+      throw new Error("No se recibió respuesta de Google Drive al finalizar la subida");
+    }
+
     const fileId = uploadData.id;
     const webViewLink = uploadData.webViewLink;
 
-    // 5. Make it shareable
+    // 6. Make it shareable
     await shareDriveFile(accessToken, fileId);
 
-    // 6. Optionally update the recording in Supabase with the Drive link
+    // 7. Update the recording in Supabase with the Drive link
     if (recordingId) {
       await supabase
         .from("recordings")

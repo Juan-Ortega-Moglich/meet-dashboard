@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/api/recordings/save-to-drive/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}
