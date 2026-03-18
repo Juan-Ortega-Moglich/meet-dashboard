@@ -3,10 +3,14 @@ import { supabase } from "@/lib/supabase";
 import { getBot, getBotTranscript } from "@/lib/recall";
 import { triggerAutoMinuta } from "@/lib/auto-minuta";
 
+// Throttle autoSync to run at most once every 60 seconds
+let lastAutoSync = 0;
+
 // Auto-sync: create recording entries for bots that finished but are missing from recordings table.
-// Checks bots with status "done", "call_ended", or "recording_done" — if Recall confirms
-// the recording is done, it syncs them regardless of the local status (webhook may have failed).
 async function autoSync() {
+  const now = Date.now();
+  if (now - lastAutoSync < 60_000) return; // skip if ran recently
+  lastAutoSync = now;
   const { data: candidates } = await supabase
     .from("recall_bots")
     .select("*")
@@ -110,16 +114,19 @@ async function autoSync() {
   }
 }
 
-// GET /api/recall/recordings — List recordings, optionally filtered by host
+// GET /api/recall/recordings — List recordings with pagination and week filter
 export async function GET(req: NextRequest) {
   const host = req.nextUrl.searchParams.get("host");
+  const page = parseInt(req.nextUrl.searchParams.get("page") || "1", 10);
+  const limit = parseInt(req.nextUrl.searchParams.get("limit") || "10", 10);
+  const weekOf = req.nextUrl.searchParams.get("week"); // ISO date string for start of week
 
   // Auto-sync any done bots missing from recordings
   await autoSync();
 
   let query = supabase
     .from("recordings")
-    .select("*")
+    .select("id, recall_bot_id, title, host, date, duration, platform, video_url, status", { count: "exact" })
     .eq("status", "done")
     .order("date", { ascending: false });
 
@@ -127,52 +134,32 @@ export async function GET(req: NextRequest) {
     query = query.eq("host", host);
   }
 
-  const { data, error } = await query;
+  // Filter by week if provided
+  if (weekOf) {
+    const weekStart = new Date(weekOf);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    query = query.gte("date", weekStart.toISOString()).lt("date", weekEnd.toISOString());
+  }
+
+  // Apply pagination
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const recordings = await Promise.all(
-    (data || []).map(async (rec) => {
-      let videoUrl = rec.video_url;
-      let transcript = rec.transcript;
-
-      if (rec.recall_bot_id) {
-        try {
-          const bot = await getBot(rec.recall_bot_id) as {
-            recordings: Array<{
-              media_shortcuts: {
-                video_mixed?: { data: { download_url: string } };
-              };
-            }>;
-          };
-
-          // Refresh video URL (presigned URLs expire after 5h)
-          const freshUrl = bot.recordings?.[0]?.media_shortcuts?.video_mixed?.data?.download_url;
-          if (freshUrl) {
-            videoUrl = freshUrl;
-          }
-
-          // If no transcript saved, fetch directly from Recall
-          if (!transcript || (Array.isArray(transcript) && transcript.length === 0)) {
-            const fetched = await getBotTranscript(rec.recall_bot_id);
-            if (fetched.length > 0) {
-              transcript = fetched;
-              await supabase
-                .from("recordings")
-                .update({ transcript: fetched })
-                .eq("id", rec.id);
-            }
-          }
-        } catch {
-          // If Recall API fails, return existing data
-        }
-      }
-
-      return { ...rec, video_url: videoUrl, transcript: transcript || [] };
-    })
-  );
+  // Return recordings WITHOUT fetching fresh URLs from Recall (that's too slow for a list).
+  // Fresh video URLs are fetched on-demand via /api/recall/recordings/[id]/video
+  const recordings = (data || []).map((rec) => ({
+    ...rec,
+    transcript: [], // Don't send transcripts in the list — too heavy
+  }));
 
   // Extract unique hosts from all recordings for the sidebar
   const { data: allRecs } = await supabase
@@ -182,5 +169,14 @@ export async function GET(req: NextRequest) {
 
   const hosts = [...new Set((allRecs || []).map((r) => r.host).filter(Boolean))].sort();
 
-  return NextResponse.json({ recordings, hosts });
+  return NextResponse.json({
+    recordings,
+    hosts,
+    pagination: {
+      page,
+      limit,
+      total: count || 0,
+      totalPages: Math.ceil((count || 0) / limit),
+    },
+  });
 }

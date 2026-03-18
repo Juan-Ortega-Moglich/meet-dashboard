@@ -12,6 +12,8 @@ import {
   Calendar,
   Loader2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Users,
   Sparkles,
   X,
@@ -627,8 +629,29 @@ function RecordingCard({
   const [driveLink, setDriveLink] = useState<string | null>(null);
   const [driveError, setDriveError] = useState<string | null>(null);
 
+  // Lazy-loaded detail (video URL + transcript) fetched on expand
+  const [detail, setDetail] = useState<Recording | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Fetch full recording detail when expanded for the first time
+  useEffect(() => {
+    if (isExpanded && !detail && !loadingDetail) {
+      setLoadingDetail(true);
+      fetch(`/api/recall/recordings/${recording.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.recording) setDetail(data.recording);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingDetail(false));
+    }
+  }, [isExpanded, detail, loadingDetail, recording.id]);
+
+  // Use detail data when available, fallback to list data
+  const fullRecording = detail || recording;
+
   const handleSaveVideoToDrive = async () => {
-    if (!recording.video_url) return;
+    if (!fullRecording.video_url) return;
     setSavingToDrive(true);
     setDriveError(null);
     try {
@@ -636,10 +659,10 @@ function RecordingCard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          videoUrl: recording.video_url,
-          title: recording.title,
-          host: recording.host,
-          recordingId: recording.id,
+          videoUrl: fullRecording.video_url,
+          title: fullRecording.title,
+          host: fullRecording.host,
+          recordingId: fullRecording.id,
         }),
       });
       const data = await res.json();
@@ -662,12 +685,12 @@ function RecordingCard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recordingId: recording.id,
-          title: recording.title,
-          date: recording.date,
-          host: recording.host,
-          duration: recording.duration,
-          transcript: recording.transcript,
+          recordingId: fullRecording.id,
+          title: fullRecording.title,
+          date: fullRecording.date,
+          host: fullRecording.host,
+          duration: fullRecording.duration,
+          transcript: fullRecording.transcript,
         }),
       });
       const data = await res.json();
@@ -746,11 +769,20 @@ function RecordingCard({
             </span>
           </div>
 
+          {loadingDetail && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin text-[#2055e4]" />
+              <span className="ml-2 text-sm text-gray-500">Cargando detalles...</span>
+            </div>
+          )}
+
+          {!loadingDetail && (
+          <>
           {/* Action buttons */}
           <div className="flex flex-wrap gap-3 mt-4 mb-5">
-            {recording.video_url && (
+            {fullRecording.video_url && (
               <a
-                href={recording.video_url}
+                href={fullRecording.video_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg"
@@ -760,7 +792,7 @@ function RecordingCard({
                 Ver video
               </a>
             )}
-            {recording.video_url && !driveLink && (
+            {fullRecording.video_url && !driveLink && (
               <button
                 onClick={handleSaveVideoToDrive}
                 disabled={savingToDrive}
@@ -797,16 +829,16 @@ function RecordingCard({
                 {driveError}
               </span>
             )}
-            {recording.transcript.length > 0 && (
+            {fullRecording.transcript.length > 0 && (
               <button
-                onClick={() => downloadTranscript(recording)}
+                onClick={() => downloadTranscript(fullRecording)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all"
               >
                 <Download size={15} />
                 Descargar transcripción
               </button>
             )}
-            {recording.transcript.length > 0 && minuta && selectedTemplate && (
+            {fullRecording.transcript.length > 0 && minuta && selectedTemplate && (
               <button
                 onClick={() => setShowMinutaModal(true)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:opacity-90 hover:shadow-lg"
@@ -816,7 +848,7 @@ function RecordingCard({
                 Ver minuta
               </button>
             )}
-            {recording.transcript.length > 0 && (
+            {fullRecording.transcript.length > 0 && (
               <button
                 onClick={() => setShowTemplateSelect(true)}
                 disabled={generatingMinuta}
@@ -862,21 +894,21 @@ function RecordingCard({
             <MinutaModal
               minuta={minuta}
               template={selectedTemplate}
-              host={recording.host}
+              host={fullRecording.host}
               onClose={() => setShowMinutaModal(false)}
               onUpdate={(updated) => setMinuta(updated)}
             />
           )}
 
           {/* Transcript */}
-          {recording.transcript.length > 0 && (
+          {fullRecording.transcript.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <FileText size={15} className="text-[#2055e4]" />
                 <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Transcripción</h4>
               </div>
               <div className="bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 md:p-5 space-y-3 max-h-72 overflow-y-auto">
-                {recording.transcript.map((block, idx) => (
+                {fullRecording.transcript.map((block, idx) => (
                   <div key={idx} className="flex gap-3 text-sm group/line hover:bg-blue-50/50 dark:hover:bg-blue-900/20 -mx-2 px-2 py-1.5 rounded-lg transition-colors">
                     <span className="shrink-0 font-mono text-xs text-[#2055e4] bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded-md h-fit mt-0.5">
                       {block.timestamp}
@@ -891,11 +923,13 @@ function RecordingCard({
             </div>
           )}
 
-          {recording.transcript.length === 0 && (
+          {fullRecording.transcript.length === 0 && (
             <div className="mt-4 p-6 rounded-xl bg-gray-50 dark:bg-gray-800 text-center">
               <FileText size={24} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
               <p className="text-sm text-gray-400 dark:text-gray-500">Transcripción no disponible</p>
             </div>
+          )}
+          </>
           )}
         </div>
       )}
@@ -905,12 +939,42 @@ function RecordingCard({
 
 // --- Page ---
 
+// --- Week helpers ---
+
+function getMonday(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Monday = 1
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function formatWeekRange(monday: Date): string {
+  const sunday = new Date(monday);
+  sunday.setDate(sunday.getDate() + 6);
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+  const start = monday.toLocaleDateString("es-MX", opts);
+  const end = sunday.toLocaleDateString("es-MX", { ...opts, year: "numeric" });
+  return `${start} – ${end}`;
+}
+
 export default function GrabacionesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedHost, setSelectedHost] = useState("Todos");
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [hosts, setHosts] = useState<string[]>(FALLBACK_HOSTS);
   const [loading, setLoading] = useState(true);
+
+  // Week filter
+  const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
+  const [showAllWeeks, setShowAllWeeks] = useState(false);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 10;
 
   // Load hosts from API
   useEffect(() => {
@@ -928,11 +992,18 @@ export default function GrabacionesPage() {
     try {
       const params = new URLSearchParams();
       if (selectedHost !== "Todos") params.set("host", selectedHost);
+      if (!showAllWeeks) params.set("week", weekStart.toISOString());
+      params.set("page", page.toString());
+      params.set("limit", PAGE_SIZE.toString());
 
       const res = await fetch(`/api/recall/recordings?${params}`);
       if (res.ok) {
         const data = await res.json();
         setRecordings(data.recordings || []);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalCount(data.pagination.total);
+        }
         if (data.hosts && data.hosts.length > 0) {
           setHosts((prev) => {
             const merged = [...new Set([...data.hosts, ...prev])].sort();
@@ -947,7 +1018,7 @@ export default function GrabacionesPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedHost]);
+  }, [selectedHost, weekStart, showAllWeeks, page]);
 
   useEffect(() => {
     setLoading(true);
@@ -961,23 +1032,91 @@ export default function GrabacionesPage() {
   const handleHostSelect = (host: string) => {
     setSelectedHost(host);
     setExpandedId(null);
+    setPage(1);
   };
+
+  const goToPrevWeek = () => {
+    const prev = new Date(weekStart);
+    prev.setDate(prev.getDate() - 7);
+    setWeekStart(prev);
+    setPage(1);
+    setExpandedId(null);
+  };
+
+  const goToNextWeek = () => {
+    const next = new Date(weekStart);
+    next.setDate(next.getDate() + 7);
+    setWeekStart(next);
+    setPage(1);
+    setExpandedId(null);
+  };
+
+  const goToCurrentWeek = () => {
+    setWeekStart(getMonday(new Date()));
+    setPage(1);
+    setExpandedId(null);
+    setShowAllWeeks(false);
+  };
+
+  const isCurrentWeek = getMonday(new Date()).getTime() === weekStart.getTime();
 
   return (
     <div className="flex flex-col md:flex-row gap-6">
       <HostSidebar hosts={hosts} selectedHost={selectedHost} onSelect={handleHostSelect} />
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-5">
+        <div className="flex items-center gap-2 mb-4">
           <Video size={18} className="text-[#2055e4]" />
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {selectedHost === "Todos" ? "Todas las grabaciones" : `Grabaciones de ${selectedHost}`}
           </h2>
           {!loading && (
             <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-[#2055e4] text-xs font-semibold">
-              {recordings.length}
+              {totalCount}
             </span>
           )}
+        </div>
+
+        {/* Week navigator */}
+        <div className="flex items-center gap-2 mb-5 flex-wrap">
+          {!showAllWeeks && (
+            <div className="flex items-center gap-1 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <button
+                onClick={goToPrevWeek}
+                className="p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-700"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[180px] text-center">
+                {formatWeekRange(weekStart)}
+              </span>
+              <button
+                onClick={goToNextWeek}
+                disabled={isCurrentWeek}
+                className="p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+          {!isCurrentWeek && !showAllWeeks && (
+            <button
+              onClick={goToCurrentWeek}
+              className="px-3 py-2 rounded-xl text-xs font-medium text-[#2055e4] bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+            >
+              Semana actual
+            </button>
+          )}
+          <button
+            onClick={() => { setShowAllWeeks(!showAllWeeks); setPage(1); setExpandedId(null); }}
+            className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+              showAllWeeks
+                ? "text-white bg-[#2055e4]"
+                : "text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+            }`}
+          >
+            {showAllWeeks ? "Filtrando: Todas" : "Ver todas"}
+          </button>
         </div>
 
         {loading ? (
@@ -990,23 +1129,62 @@ export default function GrabacionesPage() {
               <Video size={24} className="text-gray-400" />
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-              {selectedHost === "Todos"
-                ? "No hay grabaciones registradas"
-                : `No hay grabaciones para ${selectedHost}`}
+              {showAllWeeks
+                ? (selectedHost === "Todos"
+                    ? "No hay grabaciones registradas"
+                    : `No hay grabaciones para ${selectedHost}`)
+                : "No hay grabaciones en esta semana"}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Las grabaciones aparecerán aquí cuando se completen</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              {!showAllWeeks ? "Prueba con otra semana o ve todas las grabaciones" : "Las grabaciones aparecerán aquí cuando se completen"}
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {recordings.map((recording) => (
-              <RecordingCard
-                key={recording.id}
-                recording={recording}
-                isExpanded={expandedId === recording.id}
-                onToggle={() => handleToggle(recording.id)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-3">
+              {recordings.map((recording) => (
+                <RecordingCard
+                  key={recording.id}
+                  recording={recording}
+                  isExpanded={expandedId === recording.id}
+                  onToggle={() => handleToggle(recording.id)}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <button
+                  onClick={() => { setPage((p) => Math.max(1, p - 1)); setExpandedId(null); }}
+                  disabled={page === 1}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => { setPage(p); setExpandedId(null); }}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                      p === page
+                        ? "bg-[#2055e4] text-white"
+                        : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); setExpandedId(null); }}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
