@@ -33,7 +33,7 @@ export default function Home() {
     <div>
       <div className="mb-6 md:mb-10">
         <h1 className="text-2xl md:text-4xl font-extrabold shimmer-text mb-2 md:mb-3">
-          Bienvenido al Dashboard
+          Dashboard
         </h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm md:text-lg">
           Selecciona una sección para comenzar
