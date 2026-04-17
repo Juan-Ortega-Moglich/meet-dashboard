@@ -8,7 +8,7 @@ export async function POST() {
   try {
     // Get all recall_bots that may have finished (done, call_ended, recording_done)
     const { data: doneBots, error: botsError } = await supabase
-      .from("recall_bots")
+      .from("recall_bot")
       .select("*")
       .in("status", ["done", "call_ended", "recording_done"]);
 
@@ -112,7 +112,7 @@ export async function POST() {
           // Fix bot status if it was stuck
           if (botRecord.status !== "done") {
             await supabase
-              .from("recall_bots")
+              .from("recall_bot")
               .update({ status: "done" })
               .eq("recall_bot_id", botRecord.recall_bot_id);
           }

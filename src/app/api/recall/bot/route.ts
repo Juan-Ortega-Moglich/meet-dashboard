@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }) as { id: string };
 
     // Save to Supabase — if scheduled, status is "ready"
-    const { data, error } = await supabase.from("recall_bots").insert({
+    const { data, error } = await supabase.from("recall_bot").insert({
       recall_bot_id: recallBot.id,
       meeting_url,
       bot_name: "Asistente Comercial",
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   const host = req.nextUrl.searchParams.get("host");
 
   let query = supabase
-    .from("recall_bots")
+    .from("recall_bot")
     .select("*")
     .order("created_at", { ascending: false });
 
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
           if (latest && latest.code !== bot.status) {
             // Update in Supabase for future queries
             await supabase
-              .from("recall_bots")
+              .from("recall_bot")
               .update({ status: latest.code })
               .eq("recall_bot_id", bot.recall_bot_id);
             return { ...bot, status: latest.code };

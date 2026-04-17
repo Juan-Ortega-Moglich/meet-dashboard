@@ -30,7 +30,7 @@ export async function GET(
     // Update status in Supabase
     if (latestStatus) {
       await supabase
-        .from("recall_bots")
+        .from("recall_bot")
         .update({ status: latestStatus.code })
         .eq("recall_bot_id", id);
     }

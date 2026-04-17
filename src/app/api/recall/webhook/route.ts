@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       const statusCode = data?.data?.code;
       if (statusCode) {
         await supabase
-          .from("recall_bots")
+          .from("recall_bot")
           .update({ status: statusCode })
           .eq("recall_bot_id", botId);
       }
@@ -60,7 +60,7 @@ async function handleBotDone(botId: string) {
 
     // Get our bot record from Supabase
     const { data: botRecord } = await supabase
-      .from("recall_bots")
+      .from("recall_bot")
       .select("*")
       .eq("recall_bot_id", botId)
       .single();
@@ -113,7 +113,7 @@ async function handleBotDone(botId: string) {
 
     if (existingRec && existingRec.length > 0) {
       console.log(`[Webhook] Recording already exists for bot ${botId}, skipping insert`);
-      await supabase.from("recall_bots").update({ status: "done" }).eq("recall_bot_id", botId);
+      await supabase.from("recall_bot").update({ status: "done" }).eq("recall_bot_id", botId);
       return;
     }
 
@@ -149,7 +149,7 @@ async function handleBotDone(botId: string) {
 
     // Update bot status
     await supabase
-      .from("recall_bots")
+      .from("recall_bot")
       .update({ status: "done" })
       .eq("recall_bot_id", botId);
 

@@ -73,7 +73,7 @@ export async function POST() {
 
   // Get today's bots to avoid duplicates
   const { data: todayBots } = await supabase
-    .from("recall_bots")
+    .from("recall_bot")
     .select("meeting_url, host")
     .gte("created_at", todayStart.toISOString());
 
@@ -128,7 +128,7 @@ export async function POST() {
         join_at: event.start, // Recall will join at this exact time
       }) as { id: string };
 
-      await supabase.from("recall_bots").insert({
+      await supabase.from("recall_bot").insert({
         recall_bot_id: recallBot.id,
         meeting_url: meetLink,
         bot_name: "Asistente Comercial",

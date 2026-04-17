@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     // Update status in Supabase
     await supabase
-      .from("recall_bots")
+      .from("recall_bot")
       .update({ status: "done" })
       .eq("recall_bot_id", recall_bot_id);
 

@@ -12,7 +12,7 @@ async function autoSync() {
   if (now - lastAutoSync < 60_000) return; // skip if ran recently
   lastAutoSync = now;
   const { data: candidates } = await supabase
-    .from("recall_bots")
+    .from("recall_bot")
     .select("*")
     .in("status", ["done", "call_ended", "recording_done"]);
 
@@ -104,7 +104,7 @@ async function autoSync() {
       // Also fix the bot status in recall_bots if it was stuck
       if (botRecord.status !== "done") {
         await supabase
-          .from("recall_bots")
+          .from("recall_bot")
           .update({ status: "done" })
           .eq("recall_bot_id", botRecord.recall_bot_id);
       }
