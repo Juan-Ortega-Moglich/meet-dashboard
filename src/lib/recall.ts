@@ -57,15 +57,15 @@ export async function createBot(params: CreateBotParams) {
       },
       automatic_leave: {
         silence_detection: {
-          timeout: 300,
-          activate_after: 60,
+          timeout: 900,
+          activate_after: 180,
         },
         everyone_left_timeout: {
-          timeout: 2,
-          activate_after: 1,
+          timeout: 30,
+          activate_after: 5,
         },
-        noone_joined_timeout: 300,
-        waiting_room_timeout: 300,
+        noone_joined_timeout: 600,
+        waiting_room_timeout: 600,
       },
     },
   });
