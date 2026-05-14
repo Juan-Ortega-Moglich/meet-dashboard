@@ -21,7 +21,13 @@ export async function GET() {
     );
     const revisions = await revRes.json();
 
-    return NextResponse.json({ meta, revisions });
+    const permRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${SHEET_ID}/permissions?fields=permissions(id,type,role,emailAddress,displayName,domain)&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const permissions = await permRes.json();
+
+    return NextResponse.json({ meta, revisions, permissions });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "error" },
