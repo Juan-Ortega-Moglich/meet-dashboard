@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const accessToken = await getAccessToken("Operaciones");
 
-    const q = `mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and (name contains 'clay' or name contains 'Clay' or name contains 'numero' or name contains 'Numero')`;
+    const q = `mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and modifiedTime > '2026-03-01T00:00:00Z' and modifiedTime < '2026-04-15T00:00:00Z' and 'me' in owners`;
     const params = new URLSearchParams({
       q,
       pageSize: "100",
